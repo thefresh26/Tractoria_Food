@@ -386,6 +386,8 @@ body.editing .photo-btn{display:inline-flex}
    - variants: una o varias opciones con su precio (label vacío = opción única).
    - photo: ruta de una foto WebP (ej. 'img/bofe.webp'). Se carga diferida.
      Si es null se muestra la ilustración de "art".                         */
+/* Dónde vive la API (Vercel). En GitHub Pages se llama a Vercel; en Vercel, a sí misma. */
+var API_BASE=/github\.io$/.test(location.hostname)?'https://tractoria-food.vercel.app':'';
 var MENU=[],ADMENU=[];
 var DEFAULTS={nequi:'',wa:'',didi:'https://www.didi-food.com/es-CO',qr:null,
   t_top:'Comida casera a domicilio',t_nombre1:'Desayunos',t_nombre2:'TRATTORIA',t_lema:'MENÚ DEL DÍA · HECHO PARA DISFRUTAR',
@@ -430,7 +432,7 @@ var orders=[];
 var cart=sget('dt_cart',[]);
 var editing=false,pending={};
 function api(a,body){
-  return fetch('/api?a='+a,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','x-token':sget('dt_tok','')},body:body?JSON.stringify(body):undefined})
+  return fetch(API_BASE+'/api?a='+a,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','x-token':sget('dt_tok','')},body:body?JSON.stringify(body):undefined})
     .then(function(r){return r.json().catch(function(){return {};}).then(function(j){
       if(r.status===401&&a!=='login'){setUnlocked(false);if(curView==='panel')location.hash='#vendedores';}
       if(!r.ok)throw new Error(j.error||'No se pudo conectar. Revisa tu internet.');return j;});});
@@ -929,6 +931,7 @@ var taps=0,tapT=null;
 $('#secret').addEventListener('click',function(){taps++;clearTimeout(tapT);tapT=setTimeout(function(){taps=0;},1200);if(taps>=3){taps=0;location.hash='#vendedores';}});
 window.addEventListener('hashchange',route);
 setupPWA();
+applyTexts();
 reloadData().then(function(){$('#loading').hidden=true;route();},function(){$('#loading').innerHTML='No se pudo cargar el menú. Revisa tu internet y vuelve a abrir la página.<br><button class="btn btn-red" type="button" onclick="location.reload()" style="margin-top:14px">Reintentar</button>';});
 setInterval(function(){if(curView==='panel'&&!document.hidden)reloadData().then(function(){if(curView==='panel')renderPanelBody();},function(){});},30000);
 })();

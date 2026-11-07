@@ -102,6 +102,15 @@ const A = {
 const PUBLIC = ['menu', 'pedido', 'login'];
 
 module.exports = async (req, res) => {
+  // CORS: permite que la copia en GitHub Pages use esta API.
+  const origin = req.headers.origin || '';
+  if (/^https:\/\/thefresh26\.github\.io$/.test(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-token');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  }
+  if (req.method === 'OPTIONS') return res.status(204).end();
   const a = req.query.a;
   try {
     if (!A[a]) throw [404, 'No existe'];
