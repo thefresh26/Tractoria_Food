@@ -517,7 +517,7 @@ function cardHTML(d){
   var ph=pending[d.id]&&pending[d.id].photo||d.photo;
   var art=ph?'<img src="'+esc(ph)+'" alt="'+esc(d.name)+'" loading="lazy" decoding="async" width="400" height="250">':(ART[d.art]?ART[d.art]():ART.generic());
   var pb=unlocked()?'<label class="btn btn-red photo-btn">Cambiar foto<input type="file" accept="image/*" data-photo="'+esc(d.id)+'" aria-label="Cambiar foto de '+esc(d.name)+'"></label>':'';
-  return '<article class="card"><div class="art">'+art+pb+'</div><div class="card-b"><h3 data-dish="name" data-id="'+esc(d.id)+'">'+esc(d.name)+'</h3><p data-dish="desc" data-id="'+esc(d.id)+'">'+esc(d.desc)+'</p><div class="stickers">'+stick+'</div><button class="btn btn-red btn-lg" type="button" data-act="pick" data-id="'+esc(d.id)+'">Pedir</button>'+(unlocked()?'<button class="btn btn-ghost btn-lg" type="button" data-act="dishedit" data-id="'+esc(d.id)+'">Precios y opciones</button>':'')+'</div></article>';
+  return '<article class="card"><div class="art">'+art+pb+'</div><div class="card-b"><h3 data-dish="name" data-id="'+esc(d.id)+'">'+esc(d.name)+'</h3><p data-dish="desc" data-id="'+esc(d.id)+'">'+esc(d.desc)+'</p><div class="stickers">'+stick+'</div><button class="btn btn-red btn-lg" type="button" data-act="pick" data-id="'+esc(d.id)+'">Pedir</button>'+''+'</div></article>';
 }
 function linesHTML(){
   return '<ul class="lines">'+cart.map(function(c,i){var l=lineInfo(c);var nm=esc(l.name);
