@@ -29,7 +29,7 @@ const A = {
   async pedido(req, b) {
     const name = str(b.name, 120), phone = str(b.phone, 20).replace(/\D/g, ''), address = str(b.address, 255), barrio = str(b.barrio, 120);
     const pay = b.pay === 'efectivo' ? 'efectivo' : 'nequi';
-    if (name.length < 2 || !/^3\d{9}$/.test(phone) || address.length < 5 || barrio.length < 2) throw [400, 'Datos incompletos'];
+    if (name.length < 2 || !/^3\d{9}$/.test(phone) || address.length < 5) throw [400, 'Datos incompletos'];
     if (!Array.isArray(b.lines) || !b.lines.length || b.lines.length > 20) throw [400, 'Pedido vacío'];
     const proof = pay === 'nequi' ? img(b.proof) : null;
     if (proof === undefined) throw [400, 'Comprobante no válido'];
@@ -43,8 +43,10 @@ const A = {
       return { n: p.nombre, l: v.label, q, p: v.price };
     });
     const total = lineas.reduce((s, l) => s + l.p * l.q, 0);
-    const [r] = await sql`INSERT INTO pedidos (nombre, celular, direccion, barrio, referencia, pago, comprobante, notas, lineas, total)
-      VALUES (${name}, ${phone}, ${address}, ${barrio}, ${str(b.ref, 255) || null}, ${pay}, ${proof}, ${str(b.notes, 500) || null}, ${JSON.stringify(lineas)}, ${total})
+    const cash = pay === 'efectivo' ? Math.floor(+b.cash) : null;
+    if (pay === 'efectivo' && !(cash >= total && cash < 10000000)) throw [400, 'Indica con cuánto vas a pagar'];
+    const [r] = await sql`INSERT INTO pedidos (nombre, celular, direccion, barrio, referencia, pago, paga_con, comprobante, notas, lineas, total)
+      VALUES (${name}, ${phone}, ${address}, ${barrio}, ${str(b.ref, 255) || null}, ${pay}, ${cash}, ${proof}, ${str(b.notes, 500) || null}, ${JSON.stringify(lineas)}, ${total})
       RETURNING id, extract(epoch from creado)*1000 AS ts`;
     return { id: r.id, ts: +r.ts, lines: lineas };
   },
@@ -57,9 +59,9 @@ const A = {
 
   // ── solo vendedora ──
   async panel() {
-    const rows = await sql`SELECT id, extract(epoch from creado)*1000 AS ts, nombre, celular, direccion, barrio, referencia, pago, notas, estado, lineas, comprobante IS NOT NULL AS tiene
+    const rows = await sql`SELECT id, extract(epoch from creado)*1000 AS ts, nombre, celular, direccion, barrio, referencia, pago, paga_con, notas, estado, lineas, comprobante IS NOT NULL AS tiene
       FROM pedidos WHERE creado > now() - interval '8 days' ORDER BY id`;
-    return { orders: rows.map((o) => ({ num: o.id, ts: +o.ts, name: o.nombre, phone: o.celular, address: o.direccion, barrio: o.barrio, ref: o.referencia || '', pay: o.pago, notes: o.notas || '', st: o.estado, lines: o.lineas, proof: o.tiene })),
+    return { orders: rows.map((o) => ({ num: o.id, ts: +o.ts, name: o.nombre, phone: o.celular, address: o.direccion, barrio: o.barrio, ref: o.referencia || '', pay: o.pago, cash: o.paga_con, notes: o.notas || '', st: o.estado, lines: o.lineas, proof: o.tiene })),
       ...(await menu(true)) };
   },
   async estado(req, b) {
