@@ -20,7 +20,9 @@ const plato = (p) => ({ id: String(p.id), name: p.nombre, desc: p.descripcion ||
 async function menu(all) {
   const platos = await sql`SELECT * FROM platos WHERE activo OR ${!!all} ORDER BY orden, id`;
   const aj = await sql`SELECT clave, valor FROM ajustes WHERE clave = ANY(${PUBLICOS})`;
-  return { menu: platos.map(plato), settings: Object.fromEntries(aj.map((r) => [r.clave, r.valor])) };
+  // El costo solo lo ve la administradora.
+  const m = platos.map(plato).map((d) => all ? d : { ...d, variants: d.variants.map(({ cost, ...v }) => v) });
+  return { menu: m, settings: Object.fromEntries(aj.map((r) => [r.clave, r.valor])) };
 }
 
 const A = {
@@ -40,7 +42,7 @@ const A = {
       const v = p && p.variantes.find((x) => x.id === l.v);
       const q = Math.floor(+l.q);
       if (!v || !(q >= 1 && q <= 40)) throw [400, 'Plato no disponible'];
-      return { n: p.nombre, l: v.label, q, p: v.price };
+      return { n: p.nombre, l: v.label, q, p: v.price, c: Number.isFinite(v.cost) ? v.cost : null };
     });
     const total = lineas.reduce((s, l) => s + l.p * l.q, 0);
     const cash = pay === 'efectivo' ? Math.floor(+b.cash) : null;
@@ -60,7 +62,7 @@ const A = {
   // ── solo vendedora ──
   async panel() {
     const rows = await sql`SELECT id, extract(epoch from creado)*1000 AS ts, nombre, celular, direccion, barrio, referencia, pago, paga_con, notas, estado, lineas, comprobante IS NOT NULL AS tiene
-      FROM pedidos WHERE creado > now() - interval '8 days' ORDER BY id`;
+      FROM pedidos WHERE creado > now() - interval '32 days' ORDER BY id`;
     return { orders: rows.map((o) => ({ num: o.id, ts: +o.ts, name: o.nombre, phone: o.celular, address: o.direccion, barrio: o.barrio, ref: o.referencia || '', pay: o.pago, cash: o.paga_con, notes: o.notas || '', st: o.estado, lines: o.lineas, proof: o.tiene })),
       ...(await menu(true)) };
   },
@@ -78,7 +80,8 @@ const A = {
     const name = str(b.name, 120), desc = str(b.desc, 500), photo = img(b.photo);
     if (name.length < 2 || photo === undefined) throw [400, 'Datos del plato no válidos'];
     const vs = (Array.isArray(b.variants) ? b.variants : []).slice(0, 10)
-      .map((v, i) => ({ id: str(v.id, 40) || 'v' + i, label: str(v.label, 60), price: Math.floor(+v.price) }))
+      .map((v, i) => ({ id: str(v.id, 40) || 'v' + i, label: str(v.label, 60), price: Math.floor(+v.price),
+        cost: v.cost === '' || v.cost == null || !(+v.cost >= 0) ? null : Math.min(Math.floor(+v.cost), 9999999) }))
       .filter((v) => v.price > 0 && v.price < 10000000);
     if (!vs.length) throw [400, 'Falta el precio'];
     const active = b.active !== false;

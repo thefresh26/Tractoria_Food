@@ -264,7 +264,19 @@ details.settings form{display:grid;gap:14px;padding:6px 0 16px}
 .ph{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .ph>div{flex:1;min-width:180px}
 .dform{display:grid;gap:14px}
-.vrow{display:grid;grid-template-columns:minmax(0,1fr) 104px 48px;gap:8px;margin-bottom:8px}
+.vrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 48px;gap:8px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.vrow .vl{grid-column:1/-1}
+.vrow label{display:grid;gap:2px;font-size:14px;font-weight:700;color:var(--muted)}
+.vrow .x{align-self:end}
+.kpi.green{border-color:var(--green);background:#EAF4E2}
+.ptable{width:100%;border-collapse:collapse;margin-top:8px;font-size:16px}
+.ptable th{text-align:left;font-size:14px;color:var(--muted);padding:6px 6px;border-bottom:2px solid var(--green)}
+.ptable td{padding:10px 6px;border-bottom:1px solid var(--line)}
+.ptable td.n,.ptable th.n{text-align:right;white-space:nowrap}
+.ptable tfoot td{font-weight:800;border-bottom:0}
+.gain{color:var(--green);font-weight:800}
+.legend{display:flex;gap:14px;font-size:14px;font-weight:700;margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .x.sm{width:48px;height:48px;font-size:22px}
 
 /* pie con mantel */
@@ -636,11 +648,45 @@ function settingsHTML(){
 }
 function renderPanel(){
   reloadData().then(function(){if(curView==='panel')renderPanelBody();},function(e){toast(e.message);});
-  var tabs=[['pedidos','Pedidos'],['menu','Menú y precios'],['ajustes','Ajustes']];
+  var tabs=[['pedidos','Pedidos'],['ganancias','Ganancias'],['menu','Menú y precios'],['ajustes','Ajustes']];
   $('#v-panel').innerHTML='<div class="ptop"><h1 class="h-script sm">Administración</h1><div class="seg" role="group" aria-label="Secciones">'+tabs.map(function(t){return '<button type="button" data-act="ptab" data-t="'+t[0]+'" aria-pressed="'+(ptab===t[0])+'">'+t[1]+'</button>';}).join('')+'</div><button class="btn btn-ghost" type="button" data-act="lock">Salir</button></div><div id="pbody"></div>';
   renderPanelBody();
 }
 function sum(a,f){return a.reduce(function(s,o){return s+f(o);},0);}
+/* ═══ GANANCIAS: vendido − costo ═══ */
+var prange='hoy';
+function lineCost(l){return l.c==null?0:l.c*l.q;}
+function orderCost(o){return o.lines.reduce(function(a,l){return a+lineCost(l);},0);}
+function profitHTML(){
+  var days={hoy:1,semana:7,mes:30}[prange],from=startOfDay(Date.now(),-(days-1));
+  var list=orders.filter(function(o){return o.ts>=from;});
+  var sold=sum(list,orderTotal),cost=sum(list,orderCost),gain=sold-cost;
+  var missing=list.some(function(o){return o.lines.some(function(l){return l.c==null;});});
+  var per={};
+  list.forEach(function(o){o.lines.forEach(function(l){var k=l.n+(l.l?' ('+l.l.toLowerCase()+')':'');var r=per[k]=per[k]||{q:0,s:0,c:0,miss:false};r.q+=l.q;r.s+=l.p*l.q;r.c+=lineCost(l);if(l.c==null)r.miss=true;});});
+  var keys=Object.keys(per).sort(function(a,b){return (per[b].s-per[b].c)-(per[a].s-per[a].c);});
+  var seg='<div class="seg" role="group" aria-label="Periodo" style="margin-top:16px">'+[['hoy','Hoy'],['semana','7 días'],['mes','30 días']].map(function(r){return '<button type="button" data-act="prange" data-r="'+r[0]+'" aria-pressed="'+(prange===r[0])+'">'+r[1]+'</button>';}).join('')+'</div>';
+  var kp='<div class="kpis"><div class="kpi"><span class="k">Vendido</span><strong>'+money(sold)+'</strong><small>'+list.length+(list.length===1?' pedido':' pedidos')+'</small></div>'+
+    '<div class="kpi red"><span class="k">Lo que costó hacerlo</span><strong>'+money(cost)+'</strong></div>'+
+    '<div class="kpi green"><span class="k">Ganancia</span><strong>'+money(gain)+'</strong></div>'+
+    '<div class="kpi"><span class="k">Margen</span><strong>'+(sold?Math.round(gain/sold*100):0)+'%</strong><small>de cada $100 vendidos, ganas $'+(sold?Math.round(gain/sold*100):0)+'</small></div></div>';
+  var warn=missing?'<p class="editnote" style="margin-top:14px">Hay platos sin costo registrado: su ganancia se está contando como si no costaran nada. Ponles el costo en «Menú y precios»; los pedidos nuevos ya saldrán bien.</p>':'';
+  var tbl=keys.length?'<table class="ptable"><thead><tr><th>Plato</th><th class="n">Cant.</th><th class="n">Vendido</th><th class="n">Ganancia</th></tr></thead><tbody>'+
+    keys.map(function(k){var r=per[k];return '<tr><td>'+esc(k)+(r.miss?' <span style="color:#A5161C">*</span>':'')+'</td><td class="n">'+r.q+'</td><td class="n">'+money(r.s)+'</td><td class="n gain">'+money(r.s-r.c)+'</td></tr>';}).join('')+
+    '</tbody><tfoot><tr><td>Total</td><td class="n">'+keys.reduce(function(a,k){return a+per[k].q;},0)+'</td><td class="n">'+money(sold)+'</td><td class="n gain">'+money(gain)+'</td></tr></tfoot></table>'
+    :'<p class="muted" style="margin-top:8px">Aún no hay ventas en este periodo.</p>';
+  return seg+kp+warn+'<div class="pgrid"><section class="orders"><h2 class="h-script sm">Por plato</h2>'+tbl+'</section><section class="chart"><h2 class="h-script sm">Últimos 7 días</h2>'+profitChartHTML()+'<div class="legend"><span><i style="background:#2F7D2F"></i>Vendido</span><span><i style="background:#D4222A"></i>Ganancia</span></div></section></div>';
+}
+function profitChartHTML(){
+  var d=[],i,max=0,now=Date.now();
+  for(i=6;i>=0;i--){var s=startOfDay(now,-i),e=startOfDay(now,-i+1);var l=orders.filter(function(o){return o.ts>=s&&o.ts<e;});var v=sum(l,orderTotal),g=v-sum(l,orderCost);d.push({s:s,v:v,g:g,i:i});if(v>max)max=v;}
+  var top=Math.max(max,10000),base=168,mh=124,svg='<svg viewBox="0 0 370 210" role="img" aria-label="Vendido y ganancia de los últimos 7 días: '+d.map(function(x){return WD[new Date(x.s).getDay()]+' vendido '+money(x.v)+', ganancia '+money(x.g);}).join('; ')+'"><line x1="6" y1="'+base+'" x2="364" y2="'+base+'" stroke="#C9B58F" stroke-width="2"/>';
+  d.forEach(function(x,k){var cx=14+k*51,hv=Math.round(x.v/top*mh),hg=Math.round(Math.max(x.g,0)/top*mh);
+    svg+='<rect x="'+cx+'" y="'+(base-hv)+'" width="17" height="'+Math.max(hv,x.v?3:0)+'" rx="4" fill="#2F7D2F"/><rect x="'+(cx+19)+'" y="'+(base-hg)+'" width="17" height="'+Math.max(hg,x.g>0?3:0)+'" rx="4" fill="#D4222A"/>';
+    if(x.v)svg+='<text x="'+(cx+18)+'" y="'+(base-hv-6)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#1B1B1B">'+Math.round(x.v/1000)+'k</text>';
+    svg+='<text x="'+(cx+18)+'" y="'+(base+22)+'" text-anchor="middle" font-size="14" fill="#6B5A3E" font-weight="'+(x.i===0?800:500)+'">'+WD[new Date(x.s).getDay()]+'</text>';});
+  return svg+'</svg>';
+}
 function chartHTML(){
   var days=[],i,max=0,now=Date.now();
   for(i=6;i>=0;i--){var s=startOfDay(now,-i),e=startOfDay(now,-i+1);var t=sum(orders.filter(function(o){return o.ts>=s&&o.ts<e;}),orderTotal);days.push({s:s,t:t,i:i});if(t>max)max=t;}
@@ -664,6 +710,7 @@ function renderPanelBody(){
   if(!$('#pbody'))return;
   if(ptab==='menu'){$('#pbody').innerHTML=menuTabHTML();return;}
   if(ptab==='ajustes'){$('#pbody').innerHTML=settingsHTML();return;}
+  if(ptab==='ganancias'){$('#pbody').innerHTML=profitHTML();return;}
   var from=range==='hoy'?startOfDay(Date.now()):startOfDay(Date.now(),-6);
   var list=orders.filter(function(o){return o.ts>=from;}).sort(function(a,b){return b.ts-a.ts;});
   var sold=sum(list,orderTotal),nq=sum(list.filter(function(o){return o.pay==='nequi'&&(o.st||0)>=1;}),orderTotal),cash=sum(list.filter(function(o){return o.pay==='efectivo'&&(o.st||0)<3;}),orderTotal);
@@ -713,7 +760,7 @@ function afterMenuChange(msg){
 }
 function menuRowsHTML(){
   var rows=ADMENU.map(function(d){
-    var prices=d.variants.map(function(v){return (v.label?esc(v.label)+' ':'')+money(v.price);}).join(' · ');
+    var prices=d.variants.map(function(v){return (v.label?esc(v.label)+' ':'')+money(v.price)+(curView==='panel'?(v.cost!=null?' <span class="gain">(ganas '+money(v.price-v.cost)+')</span>':' <span style="color:#A5161C">(sin costo)</span>'):'');}).join(' · ');
     var th=d.photo?'<img src="'+esc(d.photo)+'" alt="">':(ART[d.art]?ART[d.art]():ART.generic());
     return '<li class="mrow"><span class="thumb">'+th+'</span><div class="mi"><b>'+esc(d.name)+'</b><small>'+prices+(d.active===false?' · <b style="display:inline;color:#A5161C">Oculto</b>':'')+'</small></div><div class="ma"><button class="btn btn-ghost" type="button" data-act="dishedit" data-id="'+esc(d.id)+'">Editar</button><button class="btn btn-ghost danger" type="button" data-act="dishdel" data-id="'+esc(d.id)+'" aria-label="Quitar '+esc(d.name)+'">Quitar</button></div></li>';
   }).join('');
@@ -729,7 +776,7 @@ function menuTabHTML(){
 function backToMenu(){if(curView==='panel'){closeSheet();renderPanelBody();}else showSheet(menuListHTML());}
 function vrowsHTML(){
   return ed.variants.map(function(v,i){
-    return '<div class="vrow"><input type="text" class="vl" aria-label="Nombre de la opción" placeholder="Opción (ej. Con yuca)" value="'+esc(v.label)+'"><input type="text" class="vp" inputmode="numeric" aria-label="Precio en pesos" placeholder="Precio" value="'+esc(v.price)+'"><button type="button" class="x sm" data-act="vdel" data-i="'+i+'" aria-label="Quitar esta opción">×</button></div>';
+    return '<div class="vrow"><input type="text" class="vl" aria-label="Nombre de la opción" placeholder="Opción (ej. Con yuca)" value="'+esc(v.label)+'"><label>Precio de venta<input type="text" class="vp" inputmode="numeric" placeholder="11000" value="'+esc(v.price)+'"></label><label>Te cuesta hacerlo<input type="text" class="vc" inputmode="numeric" placeholder="6000" value="'+esc(v.cost==null?'':v.cost)+'"></label><button type="button" class="x sm" data-act="vdel" data-i="'+i+'" aria-label="Quitar esta opción">×</button></div>';
   }).join('');
 }
 function dishPreviewHTML(){return ed.photo?'<img src="'+esc(ed.photo)+'" alt="">':(ART[ed.art]?ART[ed.art]():ART.generic());}
@@ -741,18 +788,18 @@ function dishFormHTML(){
    '<label class="tile"><input type="checkbox" id="dActive"'+(ed.active!==false?' checked':'')+'><span>Disponible (se muestra en el menú)</span></label>'+
    '<label class="f" for="dName">Nombre del plato<input type="text" id="dName" autocomplete="off" placeholder="Ej. Arepa con huevo" value="'+esc(ed.name)+'"></label>'+
    '<label class="f" for="dDesc">Descripción<textarea id="dDesc" placeholder="Ej. Con queso y hogao.">'+esc(ed.desc)+'</textarea></label>'+
-   '<fieldset><legend>Opciones y precios</legend><p class="fine" style="margin-bottom:8px">Si el plato tiene una sola opción, deja vacío el nombre de la opción.</p><div id="vrows">'+vrowsHTML()+'</div><button type="button" class="btn btn-ghost" data-act="vadd">Agregar otra opción</button></fieldset>'+
+   '<fieldset><legend>Opciones y precios</legend><p class="fine" style="margin-bottom:8px">Si el plato tiene una sola opción, deja vacío el nombre. «Te cuesta hacerlo» es lo que gastas en ingredientes, empaque y gas por cada plato: sirve para calcular tu ganancia y los clientes no lo ven.</p><div id="vrows">'+vrowsHTML()+'</div><button type="button" class="btn btn-ghost" data-act="vadd">Agregar otra opción</button></fieldset>'+
    '<p class="err" id="dErr" role="alert"></p>'+
    '<button class="btn btn-red btn-lg" type="submit">Guardar plato</button><button class="btn btn-ghost btn-lg" type="button" data-act="menuedit">Cancelar</button></form>';
 }
 function syncVariants(){
-  var l=document.querySelectorAll('#vrows .vl'),p=document.querySelectorAll('#vrows .vp');
-  for(var i=0;i<ed.variants.length;i++){if(l[i])ed.variants[i].label=l[i].value.trim();if(p[i])ed.variants[i].price=p[i].value;}
+  var l=document.querySelectorAll('#vrows .vl'),p=document.querySelectorAll('#vrows .vp'),c=document.querySelectorAll('#vrows .vc');
+  for(var i=0;i<ed.variants.length;i++){if(l[i])ed.variants[i].label=l[i].value.trim();if(p[i])ed.variants[i].price=p[i].value;if(c[i])ed.variants[i].cost=c[i].value;}
 }
 function saveDish(){
   syncVariants();
   var name=$('#dName').value.trim(),desc=$('#dDesc').value.trim(),err=$('#dErr');
-  var vs=ed.variants.map(function(v){return {id:v.id,label:v.label,price:parseInt(String(v.price).replace(/\D/g,''),10)||0};}).filter(function(v){return v.price>0;});
+  var vs=ed.variants.map(function(v){var cs=String(v.cost==null?'':v.cost).replace(/\D/g,'');return {id:v.id,label:v.label,price:parseInt(String(v.price).replace(/\D/g,''),10)||0,cost:cs===''?null:parseInt(cs,10)};}).filter(function(v){return v.price>0;});
   if(name.length<2){err.textContent='Escribe el nombre del plato.';$('#dName').focus();return;}
   if(!vs.length){err.textContent='Escribe el precio de al menos una opción.';return;}
   if(vs.length>1&&vs.some(function(v){return !v.label;})){err.textContent='Cuando hay varias opciones, ponle nombre a cada una.';return;}
@@ -820,13 +867,14 @@ var H={
   lbclose:function(){$('#lb').hidden=true;$('#lbImg').removeAttribute('src');},
   delqr:function(){settings.qr=null;api('ajustes',{qr:''}).then(function(){toast('QR quitado');},function(e){toast(e.message);});renderPanelBody();},
   ptab:function(t){ptab=t.getAttribute('data-t');renderPanel();},
+  prange:function(t){prange=t.getAttribute('data-r');renderPanelBody();},
   done:function(t){var o=orders.filter(function(x){return x.id===t.getAttribute('data-id');})[0];if(o)changeStatus(o.id,3-(o.st||0));},
   backdatos:function(){step='datos';renderPedido();updateBar();window.scrollTo(0,0);},
   confirm:function(){confirmOrder();},
   editpage:function(){location.hash='#inicio';setTimeout(function(){setEditing(true);window.scrollTo(0,0);},60);},
   menuedit:function(){if(curView==='panel')closeSheet();else showSheet(menuListHTML());},
   dishnew:function(){ed={id:null,art:'',name:'',desc:'',photo:null,variants:[{id:'v'+Date.now(),label:'',price:''}]};showSheet(dishFormHTML());},
-  dishedit:function(t){var d=findDish(t.getAttribute('data-id'));if(!d)return;ed={id:d.id,active:d.active,art:d.art||'',name:d.name,desc:d.desc,photo:d.photo||null,variants:d.variants.map(function(v){return {id:v.id,label:v.label,price:v.price};})};showSheet(dishFormHTML());},
+  dishedit:function(t){var d=findDish(t.getAttribute('data-id'));if(!d)return;ed={id:d.id,active:d.active,art:d.art||'',name:d.name,desc:d.desc,photo:d.photo||null,variants:d.variants.map(function(v){return {id:v.id,label:v.label,price:v.price,cost:v.cost};})};showSheet(dishFormHTML());},
   dishdel:function(t){var d=findDish(t.getAttribute('data-id'));if(!d)return;if(ADMENU.length<2){toast('Deja al menos un plato en el menú.');return;}if(!confirm('¿Quitar «'+d.name+'» del menú para siempre? Si solo no lo tienes hoy, mejor desmárcalo como disponible.'))return;api('borrar',{id:d.id}).then(reloadData).then(function(){afterMenuChange('Plato quitado');backToMenu();},function(e){toast(e.message);});},
   editon:function(){setEditing(true);},
   editcancel:function(){pending={};setEditing(false);},
