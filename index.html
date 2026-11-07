@@ -268,6 +268,8 @@ details.settings form{display:grid;gap:14px;padding:6px 0 16px}
 .vrow .vl{grid-column:1/-1}
 .vrow label{display:grid;gap:2px;font-size:14px;font-weight:700;color:var(--muted)}
 .vrow .x{align-self:end}
+.vrow .vtot{grid-column:1/-1;margin:0;font-size:16px}
+.vrow .vtot b{color:var(--red-d);font-size:18px}
 .kpi.green{border-color:var(--green);background:#EAF4E2}
 .ptable{width:100%;border-collapse:collapse;margin-top:8px;font-size:16px}
 .ptable th{text-align:left;font-size:14px;color:var(--muted);padding:6px 6px;border-bottom:2px solid var(--green)}
@@ -706,7 +708,7 @@ function rowHTML(o){
    '<td>'+o.lines.map(function(l){return '<div><b>'+l.q+' ×</b> '+esc(l.n)+(l.l?' <span class="fine">('+esc(l.l.toLowerCase())+')</span>':'')+'</div>';}).join('')+(o.notes?'<div class="fine">Nota: '+esc(o.notes)+'</div>':'')+'</td>'+
    '<td class="addr"><b>'+esc(o.address)+'</b><small>'+esc(o.barrio)+'</small>'+(o.ref?'<small>Ref: '+esc(o.ref)+'</small>':'')+'</td>'+
    '<td class="amt"><b>'+money(t)+'</b><span class="pill'+(o.pay==='efectivo'?' cash':'')+'">'+(o.pay==='nequi'?'Nequi':'Efectivo')+'</span>'+(o.pay==='efectivo'&&o.cash?'<div class="fine"><b>Paga con '+money(o.cash)+'</b> · cambio '+money(o.cash-t)+'</div>':'')+proof+'</td>'+
-   '<td><div class="stcell"><button type="button" class="chip s'+st+'" data-act="next" data-id="'+esc(o.id)+'"'+(st>=3?' disabled':'')+' aria-label="Estado de '+esc(o.id)+': '+STATUS[st]+(st<3?'. Toca para pasar a '+STATUS[st+1]:'')+'">'+STATUS[st]+(st<3?' ›':' ✓')+'</button><button type="button" class="prev" data-act="prev" data-id="'+esc(o.id)+'"'+(st<=0?' disabled':'')+' aria-label="Volver al estado anterior de '+esc(o.id)+'">↶</button>'+(st<3?'<button type="button" class="btn btn-ghost done-btn" data-act="done" data-id="'+esc(o.id)+'">Marcar entregado ✓</button>':'')+'</div>'+(st===2?'<a class="linkbtn" href="'+esc(avisoLink(o))+'" target="_blank" rel="noopener">Avisar otra vez por WhatsApp</a>':'')+'</td></tr>';
+   '<td><div class="stcell"><button type="button" class="chip s'+st+'" data-act="next" data-id="'+esc(o.id)+'"'+(st>=3?' disabled':'')+' aria-label="Estado de '+esc(o.id)+': '+STATUS[st]+(st<3?'. Toca para pasar a '+STATUS[st+1]:'')+'">'+STATUS[st]+(st<3?' ›':' ✓')+'</button><button type="button" class="prev" data-act="prev" data-id="'+esc(o.id)+'"'+(st<=0?' disabled':'')+' aria-label="Volver al estado anterior de '+esc(o.id)+'">↶</button>'+(st<3?'<button type="button" class="btn btn-ghost done-btn" data-act="done" data-id="'+esc(o.id)+'">Marcar entregado ✓</button>':'')+'</div>'+(st===2?'<a class="linkbtn" href="'+esc(avisoLink(o))+'" target="_blank" rel="noopener">Avisar otra vez por WhatsApp</a>':'')+'<div><button type="button" class="linkbtn danger" data-act="delorder" data-id="'+esc(o.id)+'" aria-label="Borrar el pedido '+esc(o.id)+'">Borrar pedido</button></div></td></tr>';
 }
 function renderPanelBody(){
   if(!$('#pbody'))return;
@@ -788,7 +790,12 @@ function menuTabHTML(){
 function backToMenu(){if(curView==='panel'){closeSheet();renderPanelBody();}else showSheet(menuListHTML());}
 function vrowsHTML(){
   return ed.variants.map(function(v,i){
-    return '<div class="vrow"><input type="text" class="vl" aria-label="Nombre de la opción" placeholder="Opción (ej. Con yuca)" value="'+esc(v.label)+'"><label>Precio de venta<input type="text" class="vp" inputmode="numeric" placeholder="11000" value="'+esc(v.price)+'"></label><label>Te cuesta hacerlo<input type="text" class="vc" inputmode="numeric" placeholder="6000" value="'+esc(v.cost==null?'':v.cost)+'"></label><button type="button" class="x sm" data-act="vdel" data-i="'+i+'" aria-label="Quitar esta opción">×</button></div>';
+    var g=v.gain!=null?v.gain:(v.price===''||v.price==null?'':(+v.price)-(+v.cost||0));
+    return '<div class="vrow"><input type="text" class="vl" aria-label="Nombre de la opción" placeholder="Opción (ej. Con yuca)" value="'+esc(v.label)+'">'+
+      '<label>Lo que cuesta la comida<input type="text" class="vc" inputmode="numeric" placeholder="6000" value="'+esc(v.cost==null?'':v.cost)+'"></label>'+
+      '<label>Lo que ganamos<input type="text" class="vg" inputmode="numeric" placeholder="5000" value="'+esc(g)+'"></label>'+
+      '<button type="button" class="x sm" data-act="vdel" data-i="'+i+'" aria-label="Quitar esta opción">×</button>'+
+      '<p class="vtot">Precio de venta: <b>'+money((parseInt(String(v.cost==null?'':v.cost).replace(/\D/g,''),10)||0)+(parseInt(String(g).replace(/\D/g,''),10)||0))+'</b></p></div>';
   }).join('');
 }
 function dishPreviewHTML(){return ed.photo?'<img src="'+esc(ed.photo)+'" alt="">':(ART[ed.art]?ART[ed.art]():ART.generic());}
@@ -800,20 +807,21 @@ function dishFormHTML(){
    '<label class="tile"><input type="checkbox" id="dActive"'+(ed.active!==false?' checked':'')+'><span>Disponible (se muestra en el menú)</span></label>'+
    '<label class="f" for="dName">Nombre del plato<input type="text" id="dName" autocomplete="off" placeholder="Ej. Arepa con huevo" value="'+esc(ed.name)+'"></label>'+
    '<label class="f" for="dDesc">Descripción<textarea id="dDesc" placeholder="Ej. Con queso y hogao.">'+esc(ed.desc)+'</textarea></label>'+
-   '<fieldset><legend>Opciones y precios</legend><p class="fine" style="margin-bottom:8px">Si el plato tiene una sola opción, deja vacío el nombre. «Te cuesta hacerlo» es lo que gastas en ingredientes, empaque y gas por cada plato: sirve para calcular tu ganancia y los clientes no lo ven.</p><div id="vrows">'+vrowsHTML()+'</div><button type="button" class="btn btn-ghost" data-act="vadd">Agregar otra opción</button></fieldset>'+
+   '<fieldset><legend>Opciones y precios</legend><p class="fine" style="margin-bottom:8px">Si el plato tiene una sola opción, deja vacío el nombre. Pon lo que cuesta hacer cada plato (ingredientes, empaque, gas) y lo que ustedes se ganan: el precio de venta se calcula solo sumando las dos cosas. Los clientes solo ven el precio de venta.</p><div id="vrows">'+vrowsHTML()+'</div><button type="button" class="btn btn-ghost" data-act="vadd">Agregar otra opción</button></fieldset>'+
    '<p class="err" id="dErr" role="alert"></p>'+
    '<button class="btn btn-red btn-lg" type="submit">Guardar plato</button><button class="btn btn-ghost btn-lg" type="button" data-act="menuedit">Cancelar</button></form>';
 }
 function syncVariants(){
-  var l=document.querySelectorAll('#vrows .vl'),p=document.querySelectorAll('#vrows .vp'),c=document.querySelectorAll('#vrows .vc');
-  for(var i=0;i<ed.variants.length;i++){if(l[i])ed.variants[i].label=l[i].value.trim();if(p[i])ed.variants[i].price=p[i].value;if(c[i])ed.variants[i].cost=c[i].value;}
+  var l=document.querySelectorAll('#vrows .vl'),c=document.querySelectorAll('#vrows .vc'),g=document.querySelectorAll('#vrows .vg');
+  for(var i=0;i<ed.variants.length;i++){var v=ed.variants[i];if(l[i])v.label=l[i].value.trim();if(c[i])v.cost=c[i].value;if(g[i])v.gain=g[i].value;
+    var cn=parseInt(String(v.cost).replace(/\D/g,''),10)||0,gn=parseInt(String(v.gain).replace(/\D/g,''),10)||0;v.price=cn+gn;}
 }
 function saveDish(){
   syncVariants();
   var name=$('#dName').value.trim(),desc=$('#dDesc').value.trim(),err=$('#dErr');
-  var vs=ed.variants.map(function(v){var cs=String(v.cost==null?'':v.cost).replace(/\D/g,'');return {id:v.id,label:v.label,price:parseInt(String(v.price).replace(/\D/g,''),10)||0,cost:cs===''?null:parseInt(cs,10)};}).filter(function(v){return v.price>0;});
+  var vs=ed.variants.map(function(v){var cs=String(v.cost==null?'':v.cost).replace(/\D/g,'');return {id:v.id,label:v.label,price:+v.price||0,cost:cs===''?null:parseInt(cs,10)};}).filter(function(v){return v.price>0;});
   if(name.length<2){err.textContent='Escribe el nombre del plato.';$('#dName').focus();return;}
-  if(!vs.length){err.textContent='Escribe el precio de al menos una opción.';return;}
+  if(!vs.length){err.textContent='Escribe lo que cuesta y lo que ganan en al menos una opción.';return;}
   if(vs.length>1&&vs.some(function(v){return !v.label;})){err.textContent='Cuando hay varias opciones, ponle nombre a cada una.';return;}
   err.textContent='';
   var btn=$('#dishForm [type=submit]');btn.disabled=true;
@@ -880,6 +888,13 @@ var H={
   delqr:function(){settings.qr=null;api('ajustes',{qr:''}).then(function(){toast('QR quitado');},function(e){toast(e.message);});renderPanelBody();},
   ptab:function(t){ptab=t.getAttribute('data-t');renderPanel();},
   prange:function(t){prange=t.getAttribute('data-r');renderPanelBody();},
+  delorder:function(t){var o=orders.filter(function(x){return x.id===t.getAttribute('data-id');})[0];if(!o)return;
+    openSheet('<div class="sheet-h"><h2 id="sheetT">¿Borrar este pedido?</h2><button class="x" type="button" data-act="close" aria-label="Cerrar">×</button></div>'+
+      '<div class="kv"><span><b>'+esc(o.id)+'</b> · '+esc(o.name)+' · '+esc(o.phone)+'</span><span>'+o.lines.map(function(l){return l.q+' × '+esc(l.n);}).join(', ')+'</span><span><b>Total:</b> '+money(orderTotal(o))+'</span></div>'+
+      '<p class="editnote">Se borra para siempre y deja de contar en las ventas y ganancias. No se puede deshacer.</p><p class="err" id="delErr" role="alert"></p>'+
+      '<button class="btn btn-red btn-lg" type="button" data-act="delorderyes" data-id="'+esc(o.id)+'">Sí, borrar el pedido</button><button class="btn btn-ghost btn-lg" type="button" data-act="close">No, cancelar</button>');},
+  delorderyes:function(t){var id=t.getAttribute('data-id'),o=orders.filter(function(x){return x.id===id;})[0];if(!o)return;t.disabled=true;
+    api('borrarpedido',{id:o.num}).then(function(){orders=orders.filter(function(x){return x.id!==id;});closeSheet();renderPanelBody();toast('Pedido '+id+' borrado');},function(e){t.disabled=false;$('#delErr').textContent=e.message;});},
   done:function(t){var o=orders.filter(function(x){return x.id===t.getAttribute('data-id');})[0];if(o)changeStatus(o.id,3-(o.st||0));},
   backdatos:function(){step='datos';renderPedido();updateBar();window.scrollTo(0,0);},
   confirm:function(){confirmOrder();},
@@ -916,6 +931,11 @@ document.addEventListener('change',function(e){
     var id=t.getAttribute('data-photo');
     coverImage(t.files[0],640,400,.78).then(function(u){pending[id]=pending[id]||{};pending[id].photo=u;var img=t.closest('.art');img.querySelector('img,svg').outerHTML='<img src="'+u+'" alt="" width="400" height="250">';toast('Foto lista. Toca «Guardar» para publicarla.');},function(){toast('No se pudo leer esa imagen. Prueba con otra.');});
   }
+});
+document.addEventListener('input',function(e){
+  var r=e.target.closest&&e.target.closest('.vrow');if(!r||!r.querySelector('.vtot'))return;
+  var n=function(s){return parseInt(String(r.querySelector(s).value).replace(/\D/g,''),10)||0;};
+  r.querySelector('.vtot b').textContent=money(n('.vc')+n('.vg'));
 });
 document.addEventListener('submit',function(e){
   var f=e.target;
