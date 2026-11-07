@@ -169,8 +169,6 @@ legend{font-weight:800;padding:0;margin-bottom:8px}
 .qr-text strong{color:var(--red-d)}
 .numrow{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;margin-bottom:12px}
 .numrow strong{font-size:20px;letter-spacing:.02em}
-.open-nequi{display:none;width:100%}
-@media (hover:none) and (pointer:coarse){.open-nequi{display:inline-flex}}
 .form-card form{display:grid;gap:14px}
 label.f{display:grid;gap:6px;font-weight:700}
 .opt{font-weight:400;color:var(--muted)}
@@ -386,8 +384,8 @@ body.editing .photo-btn{display:inline-flex}
    - variants: una o varias opciones con su precio (label vacío = opción única).
    - photo: ruta de una foto WebP (ej. 'img/bofe.webp'). Se carga diferida.
      Si es null se muestra la ilustración de "art".                         */
-/* Dónde vive la API (Vercel). En GitHub Pages se llama a Vercel; en Vercel, a sí misma. */
-var API_BASE=/github\.io$/.test(location.hostname)?'https://tractoria-food.vercel.app':'';
+/* La API vive en Render junto a la página. Si se abre la copia de GitHub Pages, usa la de Render. */
+var API_BASE=/github\.io$/.test(location.hostname)?'https://tractoria-food.onrender.com':'';
 var MENU=[],ADMENU=[];
 var DEFAULTS={nequi:'',wa:'',didi:'https://www.didi-food.com/es-CO',qr:null,
   t_top:'Comida casera a domicilio',t_nombre1:'Desayunos',t_nombre2:'TRATTORIA',t_lema:'MENÚ DEL DÍA · HECHO PARA DISFRUTAR',
@@ -523,7 +521,7 @@ function renderPedido(){
      (settings.qr?'':'<span class="qr-badge">QR de ejemplo · se cambia en el panel de vendedoras</span>')+
      '<p class="qr-text">Escanea con Nequi y paga <strong id="qrAmt"></strong></p>'+
      '<div class="numrow"><span>Nequi <strong>'+esc(settings.nequi)+'</strong></span><button class="btn btn-ghost" type="button" data-act="copy">Copiar número</button></div>'+
-     '<a class="btn btn-red open-nequi" id="openNequi" href="https://www.nequi.com.co/" target="_blank" rel="noopener">Abrir Nequi</a></section>'+
+     '</section>'+
    '<section class="card-s form-card" aria-labelledby="fT"><h2 class="h-script sm" id="fT" style="margin-bottom:12px">¿A dónde te lo llevamos?</h2>'+
     '<form id="orderForm" novalidate>'+
      field('fName','Nombre','text','name','María Pérez')+
@@ -546,8 +544,6 @@ function refreshCheckout(){
   if(!$('#orderSum'))return;
   $('#orderSum').innerHTML=linesHTML()+'<div class="totalrow"><span>Total a pagar</span><strong>'+money(cartTotal())+'</strong></div>';
   var q=$('#qrAmt');if(q)q.textContent=money(cartTotal());
-  var a=$('#openNequi');
-  if(a){var android=/android/i.test(navigator.userAgent);a.href=android?'intent://#Intent;package=com.nequi.MobileApp;S.browser_fallback_url='+encodeURIComponent('https://www.nequi.com.co/')+';end':'https://www.nequi.com.co/';}
 }
 function applyPay(p){
   var cash=p==='efectivo';
