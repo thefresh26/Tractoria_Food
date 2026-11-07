@@ -704,7 +704,7 @@ function rowHTML(o){
    '<td>'+o.lines.map(function(l){return '<div><b>'+l.q+' ×</b> '+esc(l.n)+(l.l?' <span class="fine">('+esc(l.l.toLowerCase())+')</span>':'')+'</div>';}).join('')+(o.notes?'<div class="fine">Nota: '+esc(o.notes)+'</div>':'')+'</td>'+
    '<td class="addr"><b>'+esc(o.address)+'</b><small>'+esc(o.barrio)+'</small>'+(o.ref?'<small>Ref: '+esc(o.ref)+'</small>':'')+'</td>'+
    '<td class="amt"><b>'+money(t)+'</b><span class="pill'+(o.pay==='efectivo'?' cash':'')+'">'+(o.pay==='nequi'?'Nequi':'Efectivo')+'</span>'+(o.pay==='efectivo'&&o.cash?'<div class="fine"><b>Paga con '+money(o.cash)+'</b> · cambio '+money(o.cash-t)+'</div>':'')+proof+'</td>'+
-   '<td><div class="stcell"><button type="button" class="chip s'+st+'" data-act="next" data-id="'+esc(o.id)+'"'+(st>=3?' disabled':'')+' aria-label="Estado de '+esc(o.id)+': '+STATUS[st]+(st<3?'. Toca para pasar a '+STATUS[st+1]:'')+'">'+STATUS[st]+(st<3?' ›':' ✓')+'</button><button type="button" class="prev" data-act="prev" data-id="'+esc(o.id)+'"'+(st<=0?' disabled':'')+' aria-label="Volver al estado anterior de '+esc(o.id)+'">↶</button>'+(st<3?'<button type="button" class="btn btn-ghost done-btn" data-act="done" data-id="'+esc(o.id)+'">Marcar entregado ✓</button>':'')+'</div></td></tr>';
+   '<td><div class="stcell"><button type="button" class="chip s'+st+'" data-act="next" data-id="'+esc(o.id)+'"'+(st>=3?' disabled':'')+' aria-label="Estado de '+esc(o.id)+': '+STATUS[st]+(st<3?'. Toca para pasar a '+STATUS[st+1]:'')+'">'+STATUS[st]+(st<3?' ›':' ✓')+'</button><button type="button" class="prev" data-act="prev" data-id="'+esc(o.id)+'"'+(st<=0?' disabled':'')+' aria-label="Volver al estado anterior de '+esc(o.id)+'">↶</button>'+(st<3?'<button type="button" class="btn btn-ghost done-btn" data-act="done" data-id="'+esc(o.id)+'">Marcar entregado ✓</button>':'')+'</div>'+(st===2?'<a class="linkbtn" href="'+esc(avisoLink(o))+'" target="_blank" rel="noopener">Avisar otra vez por WhatsApp</a>':'')+'</td></tr>';
 }
 function renderPanelBody(){
   if(!$('#pbody'))return;
@@ -726,9 +726,18 @@ function renderPanelBody(){
   var seg='<div class="seg" role="group" aria-label="Periodo" style="margin-top:16px"><button type="button" data-act="range" data-r="hoy" aria-pressed="'+(range==='hoy')+'">Hoy</button><button type="button" data-act="range" data-r="semana" aria-pressed="'+(range==='semana')+'">Últimos 7 días</button></div>';
   $('#pbody').innerHTML=seg+kp+'<div class="pgrid"><section class="chart" aria-labelledby="chT"><h2 class="h-script sm" id="chT">Ventas por día</h2>'+chartHTML()+'</section><section class="orders" aria-labelledby="orT"><h2 class="h-script sm" id="orT">Pedidos</h2>'+body+'</section></div>';
 }
+/* Aviso al cliente cuando el pedido sale: abre WhatsApp con el mensaje listo para enviar. */
+function avisoLink(o){
+  var biz=(settings.t_nombre1+' '+settings.t_nombre2.charAt(0)+settings.t_nombre2.slice(1).toLowerCase()).trim();
+  var t='Hola '+o.name.split(' ')[0]+', tu pedido '+o.id+' de '+biz+' ya va en camino. '+
+    'Total: '+money(orderTotal(o))+(o.pay==='efectivo'?(o.cash?' (pagas en efectivo con '+money(o.cash)+', te llevamos '+money(o.cash-orderTotal(o))+' de cambio)':' (pago en efectivo)'):' (pagado por Nequi)')+
+    '. Llega a: '+o.address+'. ¡Gracias por tu compra!';
+  return 'https://wa.me/57'+String(o.phone).replace(/\D/g,'').replace(/^57(?=3\d{9}$)/,'')+'?text='+encodeURIComponent(t);
+}
 function changeStatus(id,delta){
   var o=orders.filter(function(x){return x.id===id;})[0];if(!o)return;
   var old=o.st||0,n=Math.max(0,Math.min(3,old+delta));if(n===old)return;
+  if(n===2&&old<2){window.open(avisoLink(o),'_blank','noopener');}
   o.st=n;renderPanelBody();toast(id+': '+STATUS[n]);
   api('estado',{id:o.num,st:n}).catch(function(e){o.st=old;renderPanelBody();toast('No se guardó: '+e.message);});
   var b=$('[data-act="'+(delta>0?'next':'prev')+'"][data-id="'+id+'"]:not([disabled])')||$('[data-id="'+id+'"]');if(b)b.focus();
@@ -964,7 +973,7 @@ function renderEditCtl(){
   var c=$('#editCtl');if(!c)return;
   if(!unlocked()||curView!=='inicio'){c.innerHTML=unlocked()?'<a class="install" href="#inicio" style="text-decoration:none;display:inline-flex;align-items:center">Ver menú</a>':'';return;}
   c.innerHTML=editing?'<button class="install" type="button" data-act="editcancel">Cancelar</button> <button class="install" type="button" data-act="editsave" style="background:#2F7D2F;border-color:#2F7D2F">Guardar</button>'
-    :'<button class="install" type="button" data-act="editon">Editar página</button> <a class="install" href="#admin" style="text-decoration:none;display:inline-flex;align-items:center">Administración</a>';
+    :'<a class="install" href="#admin" style="text-decoration:none;display:inline-flex;align-items:center">Administración</a>';
 }
 function setEditing(on){
   editing=!!on&&unlocked();document.body.classList.toggle('editing',editing);
