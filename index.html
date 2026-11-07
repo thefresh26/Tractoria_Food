@@ -300,6 +300,8 @@ button.back{font-family:inherit;font-size:inherit;cursor:pointer}
 .contact{background:#EAF4E2;border:2px solid var(--green);border-radius:12px;padding:10px 14px;margin:12px 0;text-align:left}
 .contact a{color:var(--green)}
 .stcell{flex-wrap:wrap}
+.wa-btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;margin-top:6px;padding:4px 14px;border-radius:999px;background:#25D366;color:#fff!important;font-weight:800;font-size:15px;text-decoration:none}
+.wa-btn:hover{background:#1EBE5A}
 .done-btn{min-height:48px;padding:0 14px;font-size:15px}
 .ptop .seg{flex-wrap:wrap}
 
@@ -700,7 +702,7 @@ function chartHTML(){
 function rowHTML(o){
   var t=orderTotal(o),st=o.st||0;
   var proof=o.proof?'<button type="button" class="linkbtn" data-act="lb" data-id="'+esc(o.id)+'">Ver comprobante</button>':(o.pay==='nequi'?'<div class="fine">Sin comprobante</div>':'');
-  return '<tr class="o"><td class="who"><span class="tm">'+fmtTime(o.ts)+'</span> <small class="fine">'+esc(o.id)+'</small><b>'+esc(o.name)+'</b><a href="tel:'+esc(o.phone)+'">'+esc(o.phone)+'</a></td>'+
+  return '<tr class="o"><td class="who"><span class="tm">'+fmtTime(o.ts)+'</span> <small class="fine">'+esc(o.id)+'</small><b>'+esc(o.name)+'</b><a href="tel:'+esc(o.phone)+'">'+esc(o.phone)+'</a><a class="wa-btn" href="'+esc(waChat(o.phone))+'" target="_blank" rel="noopener" aria-label="Abrir WhatsApp con '+esc(o.name)+'">WhatsApp</a></td>'+
    '<td>'+o.lines.map(function(l){return '<div><b>'+l.q+' ×</b> '+esc(l.n)+(l.l?' <span class="fine">('+esc(l.l.toLowerCase())+')</span>':'')+'</div>';}).join('')+(o.notes?'<div class="fine">Nota: '+esc(o.notes)+'</div>':'')+'</td>'+
    '<td class="addr"><b>'+esc(o.address)+'</b><small>'+esc(o.barrio)+'</small>'+(o.ref?'<small>Ref: '+esc(o.ref)+'</small>':'')+'</td>'+
    '<td class="amt"><b>'+money(t)+'</b><span class="pill'+(o.pay==='efectivo'?' cash':'')+'">'+(o.pay==='nequi'?'Nequi':'Efectivo')+'</span>'+(o.pay==='efectivo'&&o.cash?'<div class="fine"><b>Paga con '+money(o.cash)+'</b> · cambio '+money(o.cash-t)+'</div>':'')+proof+'</td>'+
@@ -727,6 +729,7 @@ function renderPanelBody(){
   $('#pbody').innerHTML=seg+kp+'<div class="pgrid"><section class="chart" aria-labelledby="chT"><h2 class="h-script sm" id="chT">Ventas por día</h2>'+chartHTML()+'</section><section class="orders" aria-labelledby="orT"><h2 class="h-script sm" id="orT">Pedidos</h2>'+body+'</section></div>';
 }
 /* Aviso al cliente cuando el pedido sale: abre WhatsApp con el mensaje listo para enviar. */
+function waChat(p){return 'https://wa.me/57'+String(p).replace(/\D/g,'').replace(/^57(?=3\d{9}$)/,'');}
 function avisoLink(o){
   var biz=(settings.t_nombre1+' '+settings.t_nombre2.charAt(0)+settings.t_nombre2.slice(1).toLowerCase()).trim();
   var t='Hola '+o.name.split(' ')[0]+', tu pedido '+o.id+' de '+biz+' ya va en camino. '+
