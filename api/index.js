@@ -93,6 +93,7 @@ const A = {
       VALUES (${name}, ${desc}, ${photo}, ${JSON.stringify(vs)}, (SELECT coalesce(max(orden),0)+1 FROM platos), ${active}) RETURNING id`;
     return { id: String(r.id) };
   },
+  async borrarpedido(req, b) { await sql`DELETE FROM pedidos WHERE id = ${+b.id}`; return {}; },
   async borrar(req, b) { await sql`DELETE FROM platos WHERE id = ${+b.id}`; return {}; },
   async ajustes(req, b) {
     for (const [k, v] of Object.entries(b || {})) {
