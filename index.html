@@ -172,7 +172,7 @@ legend{font-weight:800;padding:0;margin-bottom:8px}
 .form-card form{display:grid;gap:14px}
 label.f{display:grid;gap:6px;font-weight:700}
 .opt{font-weight:400;color:var(--muted)}
-input[type=text],input[type=tel],input[type=url],input[type=password],textarea,select{width:100%;min-height:52px;padding:12px 14px;border:2px solid #C9B58F;border-radius:12px;background:#fff;font:inherit;font-size:17px;color:var(--ink)}
+input[type=text],input[type=tel],input[type=url],input[type=password],input[type=date],textarea,select{width:100%;min-height:52px;padding:12px 14px;border:2px solid #C9B58F;border-radius:12px;background:#fff;font:inherit;font-size:17px;color:var(--ink)}
 textarea{min-height:92px;resize:vertical}
 input[aria-invalid=true]{border-color:var(--red);background:#FFF3F2}
 .ferr{color:var(--red-d);font-weight:700;font-size:15px;min-height:0}
@@ -302,6 +302,11 @@ button.back{font-family:inherit;font-size:inherit;cursor:pointer}
 .contact{background:#EAF4E2;border:2px solid var(--green);border-radius:12px;padding:10px 14px;margin:12px 0;text-align:left}
 .contact a{color:var(--green)}
 .stcell{flex-wrap:wrap}
+.view>h1.h-script{display:inline-block;background:var(--cream);border:2px solid var(--green);border-radius:16px;padding:4px 18px;margin-top:4px}
+.view>.stepn{display:table;background:var(--cream);border-radius:8px;padding:2px 10px;margin-top:8px}
+.gform{display:grid;gap:12px;grid-template-columns:1fr}
+@media (min-width:768px){.gform{grid-template-columns:2fr 1fr 1fr auto;align-items:end}}
+.hint{margin-top:16px;background:var(--cream);color:var(--ink);border:2px solid var(--green);border-radius:14px;padding:10px 14px;font-weight:600}
 .wa-btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;margin-top:6px;padding:4px 14px;border-radius:999px;background:#25D366;color:#fff!important;font-weight:800;font-size:15px;text-decoration:none}
 .wa-btn:hover{background:#1EBE5A}
 .done-btn{min-height:48px;padding:0 14px;font-size:15px}
@@ -309,13 +314,8 @@ button.back{font-family:inherit;font-size:inherit;cursor:pointer}
 
 /* modo edición */
 .editbar{display:flex;gap:8px}
-body.editing [data-edit],body.editing [data-dish]{outline:2px dashed var(--green-l);outline-offset:3px;cursor:text;border-radius:6px}
-body.editing [data-edit]:focus,body.editing [data-dish]:focus{outline:3px solid var(--green);background:rgba(255,255,255,.6)}
 .editnote{background:#FFF1B8;border:2px solid #D9B73B;border-radius:12px;padding:10px 14px;font-weight:700;margin-bottom:14px}
 .art{position:relative}
-.photo-btn{position:absolute;right:10px;bottom:10px;display:none}
-body.editing .photo-btn{display:inline-flex}
-.photo-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .loading{text-align:center;padding:40px 10px;font-weight:700}
 
 /* tablet */
@@ -453,7 +453,7 @@ function shrink(file,max,type,q){
 var settings=Object.assign({},DEFAULTS);
 var orders=[];
 var cart=sget('dt_cart',[]);
-var editing=false,pending={};
+var editing=false;
 function api(a,body){
   return fetch(API_BASE+'/api?a='+a,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','x-token':sget('dt_tok','')},body:body?JSON.stringify(body):undefined})
     .then(function(r){return r.json().catch(function(){return {};}).then(function(j){
@@ -468,15 +468,15 @@ function setData(j){
   applyTexts();
 }
 var DAYS=[];
-function reloadData(){return api(unlocked()?'panel':'menu',unlocked()?{}:null).then(function(j){if(j.days)DAYS=j.days;if(j.orders)orders=j.orders.map(function(o){o.id='DT-'+pad(o.num,4);return o;});setData(j);return j;});}
+function reloadData(){return api(unlocked()?'panel':'menu',unlocked()?{}:null).then(function(j){if(j.days)DAYS=j.days;if(j.gastos)GASTOS=j.gastos;if(j.orders)orders=j.orders.map(function(o){o.id='DT-'+pad(o.num,4);return o;});setData(j);return j;});}
 function applyTexts(){
   var els=document.querySelectorAll('[data-edit]');
-  for(var i=0;i<els.length;i++){var k=els[i].getAttribute('data-edit');if(!editing||document.activeElement!==els[i])els[i].textContent=settings[k]||'';}
+  for(var i=0;i<els.length;i++){var k=els[i].getAttribute('data-edit');els[i].textContent=settings[k]||'';}
   var f=$('#footName');if(f)f.textContent=settings.t_nombre1+' '+settings.t_nombre2.charAt(0)+settings.t_nombre2.slice(1).toLowerCase();
 }
 var range='hoy',curView='inicio',sh=null,lastFocus=null,pinBuf='';
 function unlocked(){return !!sget('dt_tok','');}
-function setUnlocked(v){if(!v){sset('dt_tok','');ADMENU=[];setEditing(false);}renderEditCtl();}
+function setUnlocked(v){if(!v){sset('dt_tok','');ADMENU=[];}renderEditCtl();}
 function saveCart(){sset('dt_cart',cart);}
 function cartCount(){return cart.reduce(function(a,c){return a+c.q;},0);}
 function lineInfo(c){var d=findDish(c.d),v=findVar(d,c.v);return {name:d.name,label:v.label,price:v.price,q:c.q};}
@@ -517,12 +517,10 @@ function plaque(){
 }
 function noticesHTML(){return '<div class="notices"><p data-edit="t_aviso1">'+esc(settings.t_aviso1)+'</p><p data-edit="t_aviso2">'+esc(settings.t_aviso2)+'</p></div>';}
 function cardHTML(d){
-  var multi=d.variants.length>1;
-  var stick=d.variants.map(function(v){return '<span class="sticker">'+(multi?esc(v.label)+' ':'')+money(v.price)+'</span>';}).join('');
-  var ph=pending[d.id]&&pending[d.id].photo||d.photo;
+  var stick=d.variants.map(function(v){return '<span class="sticker">'+(v.label?esc(v.label)+' ':'')+money(v.price)+'</span>';}).join('');
+  var ph=d.photo;
   var art=ph?'<img src="'+esc(ph)+'" alt="'+esc(d.name)+'" loading="lazy" decoding="async" width="400" height="250">':(ART[d.art]?ART[d.art]():ART.generic());
-  var pb=unlocked()?'<label class="btn btn-red photo-btn">Cambiar foto<input type="file" accept="image/*" data-photo="'+esc(d.id)+'" aria-label="Cambiar foto de '+esc(d.name)+'"></label>':'';
-  return '<article class="card"><div class="art">'+art+pb+'</div><div class="card-b"><h3 data-dish="name" data-id="'+esc(d.id)+'">'+esc(d.name)+'</h3><p data-dish="desc" data-id="'+esc(d.id)+'">'+esc(d.desc)+'</p><div class="stickers">'+stick+'</div><button class="btn btn-red btn-lg" type="button" data-act="pick" data-id="'+esc(d.id)+'">Pedir</button>'+''+'</div></article>';
+  return '<article class="card"><div class="art">'+art+'</div><div class="card-b"><h3 data-dish="name" data-id="'+esc(d.id)+'">'+esc(d.name)+'</h3><p data-dish="desc" data-id="'+esc(d.id)+'">'+esc(d.desc)+'</p><div class="stickers">'+stick+'</div><button class="btn btn-red btn-lg" type="button" data-act="pick" data-id="'+esc(d.id)+'">Pedir</button>'+''+'</div></article>';
 }
 function linesHTML(){
   return '<ul class="lines">'+cart.map(function(c,i){var l=lineInfo(c);var nm=esc(l.name);
@@ -534,7 +532,7 @@ function asideHTML(){
   return '<h2 class="h-script sm">Tu pedido</h2>'+linesHTML()+'<div class="totalrow"><span>Total</span><strong>'+money(cartTotal())+'</strong></div><a class="btn btn-red" href="#pedido">Pedir aquí, te lo llevamos</a>'+noticesHTML();
 }
 function renderInicio(){
-  $('#v-inicio').innerHTML=(editing?'<p class="editnote">Modo edición: toca cualquier texto con borde verde para cambiarlo, o «Cambiar foto». Al terminar toca «Guardar» arriba.</p>':'')+plaque()+'<div class="inicio-grid"><div><div class="cards">'+MENU.map(cardHTML).join('')+'</div>'+noticesHTML()+'</div><aside class="summary" id="aside" aria-label="Resumen del pedido">'+asideHTML()+'</aside></div>';
+  $('#v-inicio').innerHTML=plaque()+'<div class="inicio-grid"><div><div class="cards">'+MENU.map(cardHTML).join('')+'</div>'+noticesHTML()+'</div><aside class="summary" id="aside" aria-label="Resumen del pedido">'+asideHTML()+'</aside></div>';
 }
 var step='datos',draft=null;
 function renderPedido(){
@@ -652,38 +650,53 @@ function renderPanel(){
 }
 function sum(a,f){return a.reduce(function(s,o){return s+f(o);},0);}
 /* ═══ GANANCIAS: vendido − costo ═══ */
-var prange='hoy';
-function lineCost(l){return l.c==null?0:l.c*l.q;}
-function orderCost(o){return o.lines.reduce(function(a,l){return a+lineCost(l);},0);}
+var prange='hoy',GASTOS=[];
+function ymd(t){var d=new Date(t);return d.getFullYear()+'-'+pad(d.getMonth()+1,2)+'-'+pad(d.getDate(),2);}
+function fmtD(s){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]),t=startOfDay(Date.now());return d.getTime()===t?'Hoy':d.getTime()===t-864e5?'Ayer':WD[d.getDay()]+' '+d.getDate()+' '+MON[d.getMonth()]+(d.getFullYear()!==new Date().getFullYear()?' '+d.getFullYear():'');}
+function moneyS(n){return (n<0?'-':'')+money(Math.abs(n));}
+/* Por día: ventas (del servidor) + gastos anotados */
+function dayRows(){
+  var m={};
+  DAYS.forEach(function(r){m[r.d]={d:r.d,n:r.n,v:r.v,g:0};});
+  GASTOS.forEach(function(g){var r=m[g.d]=m[g.d]||{d:g.d,n:0,v:0,g:0};r.g+=g.v;});
+  return Object.keys(m).sort().reverse().map(function(k){return m[k];});
+}
 function profitHTML(){
-  var days={hoy:1,semana:7,mes:30}[prange],from=startOfDay(Date.now(),-(days-1));
+  var nd={hoy:1,semana:7,mes:30}[prange],from=startOfDay(Date.now(),-(nd-1)),fromS=ymd(from);
   var list=orders.filter(function(o){return o.ts>=from;});
-  var sold=sum(list,orderTotal),cost=sum(list,orderCost),gain=sold-cost;
-  var missing=list.some(function(o){return o.lines.some(function(l){return l.c==null;});});
+  var gs=GASTOS.filter(function(g){return g.d>=fromS;});
+  var sold=sum(list,orderTotal),spent=sum(gs,function(g){return g.v;}),keep=sold-spent;
   var per={};
-  list.forEach(function(o){o.lines.forEach(function(l){var k=l.n+(l.l?' ('+l.l.toLowerCase()+')':'');var r=per[k]=per[k]||{q:0,s:0,c:0,miss:false};r.q+=l.q;r.s+=l.p*l.q;r.c+=lineCost(l);if(l.c==null)r.miss=true;});});
-  var keys=Object.keys(per).sort(function(a,b){return (per[b].s-per[b].c)-(per[a].s-per[a].c);});
+  list.forEach(function(o){o.lines.forEach(function(l){var k=l.n+(l.l?' ('+l.l.toLowerCase()+')':'');var r=per[k]=per[k]||{q:0,s:0};r.q+=l.q;r.s+=l.p*l.q;});});
+  var keys=Object.keys(per).sort(function(a,b){return per[b].s-per[a].s;});
   var seg='<div class="seg" role="group" aria-label="Periodo" style="margin-top:16px">'+[['hoy','Hoy'],['semana','7 días'],['mes','30 días']].map(function(r){return '<button type="button" data-act="prange" data-r="'+r[0]+'" aria-pressed="'+(prange===r[0])+'">'+r[1]+'</button>';}).join('')+'</div>';
-  var kp='<div class="kpis"><div class="kpi"><span class="k">Vendido</span><strong>'+money(sold)+'</strong><small>'+list.length+(list.length===1?' pedido':' pedidos')+'</small></div>'+
-    '<div class="kpi red"><span class="k">Lo que costó hacerlo</span><strong>'+money(cost)+'</strong></div>'+
-    '<div class="kpi green"><span class="k">Ganancia</span><strong>'+money(gain)+'</strong></div>'+
-    '<div class="kpi"><span class="k">Margen</span><strong>'+(sold?Math.round(gain/sold*100):0)+'%</strong><small>de cada $100 vendidos, ganas $'+(sold?Math.round(gain/sold*100):0)+'</small></div></div>';
-  var warn=missing?'<p class="editnote" style="margin-top:14px">Hay platos sin costo registrado: su ganancia se está contando como si no costaran nada. Ponles el costo en «Menú y precios»; los pedidos nuevos ya saldrán bien.</p>':'';
-  var tbl=keys.length?'<table class="ptable"><thead><tr><th>Plato</th><th class="n">Cant.</th><th class="n">Vendido</th><th class="n">Ganancia</th></tr></thead><tbody>'+
-    keys.map(function(k){var r=per[k];return '<tr><td>'+esc(k)+(r.miss?' <span style="color:#A5161C">*</span>':'')+'</td><td class="n">'+r.q+'</td><td class="n">'+money(r.s)+'</td><td class="n gain">'+money(r.s-r.c)+'</td></tr>';}).join('')+
-    '</tbody><tfoot><tr><td>Total</td><td class="n">'+keys.reduce(function(a,k){return a+per[k].q;},0)+'</td><td class="n">'+money(sold)+'</td><td class="n gain">'+money(gain)+'</td></tr></tfoot></table>'
-    :'<p class="muted" style="margin-top:8px">Aún no hay ventas en este periodo.</p>';
-  var dd=DAYS.slice(0,60),fmtD=function(s){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);var t=startOfDay(Date.now());return d.getTime()===t?'Hoy':d.getTime()===t-864e5?'Ayer':WD[d.getDay()]+' '+d.getDate()+' '+MON[d.getMonth()]+(d.getFullYear()!==new Date().getFullYear()?' '+d.getFullYear():'');};
+  var kp='<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))"><div class="kpi"><span class="k">Vendido</span><strong>'+money(sold)+'</strong><small>'+list.length+(list.length===1?' pedido':' pedidos')+'</small></div>'+
+    '<div class="kpi red"><span class="k">Gastos</span><strong>'+money(spent)+'</strong><small>'+gs.length+(gs.length===1?' gasto anotado':' gastos anotados')+'</small></div>'+
+    '<div class="kpi green"><span class="k">Te quedas con</span><strong style="'+(keep<0?'color:#A5161C':'')+'">'+moneyS(keep)+'</strong><small>vendido menos gastos</small></div></div>';
+  var form='<section class="card-s" style="margin-top:16px"><h2 class="h-script sm">Anotar un gasto</h2><p class="muted" style="margin:4px 0 12px">Lo que compraste o pagaste para el negocio: ingredientes, gas, empaques, domicilios…</p>'+
+    '<form id="gastoForm" class="gform" novalidate><label class="f" for="gDesc">¿En qué?<input type="text" id="gDesc" maxlength="120" placeholder="Ej. Plátanos y carne" autocomplete="off"></label>'+
+    '<label class="f" for="gVal">Valor<input type="text" id="gVal" inputmode="numeric" placeholder="30000" autocomplete="off"></label>'+
+    '<label class="f" for="gDate">Fecha<input type="date" id="gDate" value="'+ymd(Date.now())+'" max="'+ymd(Date.now())+'"></label>'+
+    '<button class="btn btn-red" type="submit">Guardar gasto</button></form><p class="err" id="gErr" role="alert"></p>'+
+    (gs.length?'<table class="ptable"><thead><tr><th>Fecha</th><th>En qué</th><th class="n">Valor</th><th></th></tr></thead><tbody>'+
+      gs.map(function(g){return '<tr><td>'+fmtD(g.d)+'</td><td>'+esc(g.desc)+'</td><td class="n">'+money(g.v)+'</td><td class="n"><button type="button" class="linkbtn danger" data-act="delgasto" data-id="'+g.id+'" aria-label="Borrar gasto '+esc(g.desc)+'">Borrar</button></td></tr>';}).join('')+
+      '</tbody></table>':'<p class="muted">No hay gastos anotados en este periodo.</p>')+'</section>';
+  var dd=dayRows().slice(0,60);
   var daily='<section class="orders" style="margin-top:16px"><h2 class="h-script sm">Día por día</h2>'+(dd.length?
-    '<div style="max-height:420px;overflow:auto"><table class="ptable"><thead><tr><th>Día</th><th class="n">Pedidos</th><th class="n">Vendido</th><th class="n">Costo</th><th class="n">Ganancia</th></tr></thead><tbody>'+
-    dd.map(function(r){return '<tr><td>'+fmtD(r.d)+(r.miss?' <span style="color:#A5161C" title="Tiene pedidos sin costo registrado">*</span>':'')+'</td><td class="n">'+r.n+'</td><td class="n">'+money(r.v)+'</td><td class="n">'+money(r.c)+'</td><td class="n gain">'+money(r.v-r.c)+'</td></tr>';}).join('')+
-    '</tbody></table></div><p class="fine" style="margin-top:8px">Se guarda solo cada día. Muestra hasta los últimos 60 días con ventas.</p>':'<p class="muted" style="margin-top:8px">Aún no hay días con ventas.</p>')+'</section>';
-  return seg+kp+warn+daily+'<div class="pgrid"><section class="orders"><h2 class="h-script sm">Por plato</h2>'+tbl+'</section><section class="chart"><h2 class="h-script sm">Últimos 7 días</h2>'+profitChartHTML()+'<div class="legend"><span><i style="background:#2F7D2F"></i>Vendido</span><span><i style="background:#D4222A"></i>Ganancia</span></div></section></div>';
+    '<div style="max-height:420px;overflow:auto"><table class="ptable"><thead><tr><th>Día</th><th class="n">Pedidos</th><th class="n">Vendido</th><th class="n">Gastos</th><th class="n">Te quedas con</th></tr></thead><tbody>'+
+    dd.map(function(r){var k=r.v-r.g;return '<tr><td>'+fmtD(r.d)+'</td><td class="n">'+r.n+'</td><td class="n">'+money(r.v)+'</td><td class="n">'+money(r.g)+'</td><td class="n gain" style="'+(k<0?'color:#A5161C':'')+'">'+moneyS(k)+'</td></tr>';}).join('')+
+    '</tbody></table></div><p class="fine" style="margin-top:8px">Se guarda solo cada día. Muestra los últimos 60 días con ventas o gastos.</p>':'<p class="muted" style="margin-top:8px">Aún no hay días con ventas ni gastos.</p>')+'</section>';
+  var tbl=keys.length?'<table class="ptable"><thead><tr><th>Plato</th><th class="n">Cant.</th><th class="n">Vendido</th></tr></thead><tbody>'+
+    keys.map(function(k){return '<tr><td>'+esc(k)+'</td><td class="n">'+per[k].q+'</td><td class="n">'+money(per[k].s)+'</td></tr>';}).join('')+
+    '</tbody><tfoot><tr><td>Total</td><td class="n">'+keys.reduce(function(a,k){return a+per[k].q;},0)+'</td><td class="n">'+money(sold)+'</td></tr></tfoot></table>'
+    :'<p class="muted" style="margin-top:8px">Aún no hay ventas en este periodo.</p>';
+  return seg+kp+form+daily+'<div class="pgrid"><section class="orders"><h2 class="h-script sm">Lo que más se vende</h2>'+tbl+'</section><section class="chart"><h2 class="h-script sm">Últimos 7 días</h2>'+profitChartHTML()+'<div class="legend"><span><i style="background:#2F7D2F"></i>Vendido</span><span><i style="background:#D4222A"></i>Te quedas con</span></div></section></div>';
 }
 function profitChartHTML(){
+  var m={};dayRows().forEach(function(r){m[r.d]=r;});
   var d=[],i,max=0,now=Date.now();
-  for(i=6;i>=0;i--){var s=startOfDay(now,-i),e=startOfDay(now,-i+1);var l=orders.filter(function(o){return o.ts>=s&&o.ts<e;});var v=sum(l,orderTotal),g=v-sum(l,orderCost);d.push({s:s,v:v,g:g,i:i});if(v>max)max=v;}
-  var top=Math.max(max,10000),base=168,mh=124,svg='<svg viewBox="0 0 370 210" role="img" aria-label="Vendido y ganancia de los últimos 7 días: '+d.map(function(x){return WD[new Date(x.s).getDay()]+' vendido '+money(x.v)+', ganancia '+money(x.g);}).join('; ')+'"><line x1="6" y1="'+base+'" x2="364" y2="'+base+'" stroke="#C9B58F" stroke-width="2"/>';
+  for(i=6;i>=0;i--){var s=startOfDay(now,-i),r=m[ymd(s)]||{v:0,g:0};d.push({s:s,v:r.v,g:r.v-r.g,i:i});if(r.v>max)max=r.v;}
+  var top=Math.max(max,10000),base=168,mh=124,svg='<svg viewBox="0 0 370 210" role="img" aria-label="Vendido y lo que te quedas de los últimos 7 días: '+d.map(function(x){return WD[new Date(x.s).getDay()]+' vendido '+money(x.v)+', te quedas con '+moneyS(x.g);}).join('; ')+'"><line x1="6" y1="'+base+'" x2="364" y2="'+base+'" stroke="#C9B58F" stroke-width="2"/>';
   d.forEach(function(x,k){var cx=14+k*51,hv=Math.round(x.v/top*mh),hg=Math.round(Math.max(x.g,0)/top*mh);
     svg+='<rect x="'+cx+'" y="'+(base-hv)+'" width="17" height="'+Math.max(hv,x.v?3:0)+'" rx="4" fill="#2F7D2F"/><rect x="'+(cx+19)+'" y="'+(base-hg)+'" width="17" height="'+Math.max(hg,x.g>0?3:0)+'" rx="4" fill="#D4222A"/>';
     if(x.v)svg+='<text x="'+(cx+18)+'" y="'+(base-hv-6)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#1B1B1B">'+Math.round(x.v/1000)+'k</text>';
@@ -717,7 +730,7 @@ function renderPanelBody(){
     list.forEach(function(o){var dl=o.ts>=today?'Hoy':fmtDay(o.ts)+' · sin entregar';if(dl!==last){rows+='<tr class="day"><td colspan="5">'+dl+'</td></tr>';last=dl;}rows+=rowHTML(o);});
     body='<table class="otable"><thead><tr><th>Hora y cliente</th><th>Pedido</th><th>Dirección</th><th>Total y pago</th><th>Estado</th></tr></thead><tbody>'+rows+'</tbody></table>';
   }
-  $('#pbody').innerHTML='<p class="muted" style="margin-top:16px">Aquí ves los pedidos de hoy. Al pasar el día, se guardan solos en «Ganancias» (los que no se alcanzaron a entregar siguen aquí hasta que los marques).</p>'+kp+'<section class="orders" style="margin-top:16px" aria-labelledby="orT"><h2 class="h-script sm" id="orT">Pedidos de hoy</h2>'+body+'</section>';
+  $('#pbody').innerHTML='<p class="hint">Aquí ves los pedidos de hoy. Al pasar el día, se guardan solos en «Ganancias» (los que no se alcanzaron a entregar siguen aquí hasta que los marques).</p>'+kp+'<section class="orders" style="margin-top:16px" aria-labelledby="orT"><h2 class="h-script sm" id="orT">Pedidos de hoy</h2>'+body+'</section>';
 }
 /* Aviso al cliente cuando el pedido sale: abre WhatsApp con el mensaje listo para enviar. */
 function waChat(p){return 'https://wa.me/57'+String(p).replace(/\D/g,'').replace(/^57(?=3\d{9}$)/,'');}
@@ -774,7 +787,7 @@ function menuListHTML(){
 }
 function menuTabHTML(){
   return '<section class="card-s" style="margin-top:16px;max-width:760px"><h2 class="h-script sm">Menú y precios</h2><p class="muted" style="margin:6px 0 14px">Toca «Editar» para cambiar la foto, el nombre, la descripción, los precios o si el plato está disponible hoy.</p>'+menuRowsHTML()+
-   '<button class="btn btn-red btn-lg" type="button" data-act="dishnew">Agregar comida</button><button class="btn btn-ghost btn-lg" type="button" data-act="editpage" style="margin-top:10px">Editar textos y fotos en la página</button></section>';
+   '<button class="btn btn-red btn-lg" type="button" data-act="dishnew">Agregar comida</button></section>';
 }
 function backToMenu(){if(curView==='panel'){closeSheet();renderPanelBody();}else showSheet(menuListHTML());}
 function vrowsHTML(){
@@ -841,7 +854,6 @@ function route(){
   if(view==='pin')renderPin();
   if(view==='panel')renderPanel();
   document.title={inicio:'Desayunos Trattoria · Menú del día',pedido:'Tu pedido · Desayunos Trattoria',listo:'Pedido confirmado · Desayunos Trattoria',pin:'Acceso · Desayunos Trattoria',panel:'Administración · Desayunos Trattoria'}[view];
-  if(view!=='inicio'&&editing){editing=false;document.body.classList.remove('editing');}
   renderEditCtl();applyTexts();updateBar();window.scrollTo(0,0);
 }
 function refreshCart(){
@@ -876,6 +888,9 @@ var H={
   delqr:function(){settings.qr=null;api('ajustes',{qr:''}).then(function(){toast('QR quitado');},function(e){toast(e.message);});renderPanelBody();},
   ptab:function(t){ptab=t.getAttribute('data-t');renderPanel();},
   prange:function(t){prange=t.getAttribute('data-r');renderPanelBody();},
+  delgasto:function(t){var g=GASTOS.filter(function(x){return String(x.id)===t.getAttribute('data-id');})[0];if(!g)return;
+    if(!confirm('¿Borrar el gasto «'+g.desc+'» de '+money(g.v)+'?'))return;
+    api('borrargasto',{id:g.id}).then(reloadData).then(function(){renderPanelBody();toast('Gasto borrado');},function(e){toast(e.message);});},
   delorder:function(t){var o=orders.filter(function(x){return x.id===t.getAttribute('data-id');})[0];if(!o)return;
     openSheet('<div class="sheet-h"><h2 id="sheetT">¿Borrar este pedido?</h2><button class="x" type="button" data-act="close" aria-label="Cerrar">×</button></div>'+
       '<div class="kv"><span><b>'+esc(o.id)+'</b> · '+esc(o.name)+' · '+esc(o.phone)+'</span><span>'+o.lines.map(function(l){return l.q+' × '+esc(l.n);}).join(', ')+'</span><span><b>Total:</b> '+money(orderTotal(o))+'</span></div>'+
@@ -886,14 +901,10 @@ var H={
   done:function(t){var o=orders.filter(function(x){return x.id===t.getAttribute('data-id');})[0];if(o)changeStatus(o.id,3-(o.st||0));},
   backdatos:function(){step='datos';renderPedido();updateBar();window.scrollTo(0,0);},
   confirm:function(){confirmOrder();},
-  editpage:function(){location.hash='#inicio';setTimeout(function(){setEditing(true);window.scrollTo(0,0);},60);},
   menuedit:function(){if(curView==='panel')closeSheet();else showSheet(menuListHTML());},
   dishnew:function(){ed={id:null,art:'',name:'',desc:'',photo:null,variants:[{id:'v'+Date.now(),label:'',price:''}]};showSheet(dishFormHTML());},
   dishedit:function(t){var d=findDish(t.getAttribute('data-id'));if(!d)return;ed={id:d.id,active:d.active,art:d.art||'',name:d.name,desc:d.desc,photo:d.photo||null,variants:d.variants.map(function(v){return {id:v.id,label:v.label,price:v.price,cost:v.cost};})};showSheet(dishFormHTML());},
   dishdel:function(t){var d=findDish(t.getAttribute('data-id'));if(!d)return;if(ADMENU.length<2){toast('Deja al menos un plato en el menú.');return;}if(!confirm('¿Quitar «'+d.name+'» del menú para siempre? Si solo no lo tienes hoy, mejor desmárcalo como disponible.'))return;api('borrar',{id:d.id}).then(reloadData).then(function(){afterMenuChange('Plato quitado');backToMenu();},function(e){toast(e.message);});},
-  editon:function(){setEditing(true);},
-  editcancel:function(){pending={};setEditing(false);},
-  editsave:function(t){saveEdits(t);},
   vadd:function(){syncVariants();ed.variants.push({id:'v'+Date.now(),label:'',price:''});$('#vrows').innerHTML=vrowsHTML();var i=document.querySelectorAll('#vrows .vl');if(i.length)i[i.length-1].focus();},
   vdel:function(t){syncVariants();if(ed.variants.length<2){toast('El plato necesita al menos una opción con precio.');return;}ed.variants.splice(+t.getAttribute('data-i'),1);$('#vrows').innerHTML=vrowsHTML();},
   photodel:function(t){ed.photo=null;dishPreview();t.hidden=true;}
@@ -914,10 +925,6 @@ document.addEventListener('change',function(e){
   else if(t.id==='sQR'&&t.files&&t.files[0]){
     shrink(t.files[0],640,'image/png').then(function(u){return api('ajustes',{qr:u}).then(function(){return u;});}).then(function(u){settings.qr=u;toast('QR guardado');renderPanelBody();},function(e){toast(e&&e.message||'No se pudo leer esa imagen.');});
   }
-  else if(t.getAttribute('data-photo')&&t.files&&t.files[0]){
-    var id=t.getAttribute('data-photo');
-    coverImage(t.files[0],640,400,.78).then(function(u){pending[id]=pending[id]||{};pending[id].photo=u;var img=t.closest('.art');img.querySelector('img,svg').outerHTML='<img src="'+u+'" alt="" width="400" height="250">';toast('Foto lista. Toca «Guardar» para publicarla.');},function(){toast('No se pudo leer esa imagen. Prueba con otra.');});
-  }
 });
 document.addEventListener('input',function(e){
   var r=e.target.closest&&e.target.closest('.vrow');if(!r||!r.querySelector('.vtot'))return;
@@ -928,6 +935,7 @@ document.addEventListener('submit',function(e){
   var f=e.target;
   if(f.id==='orderForm'){e.preventDefault();submitOrder(f);}
   if(f.id==='settingsForm'){e.preventDefault();saveSettings();}
+  if(f.id==='gastoForm'){e.preventDefault();saveGasto(f);}
   if(f.id==='loginForm'){e.preventDefault();doLogin();}
   if(f.id==='dishForm'){e.preventDefault();saveDish();}
 });
@@ -940,7 +948,6 @@ document.addEventListener('keydown',function(e){
     else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
     return;
   }
-  if(editing&&e.key==='Enter'&&e.target.isContentEditable){e.preventDefault();e.target.blur();}
 });
 function submitOrder(form){
   var g=function(id){return $('#'+id).value.trim();};
@@ -978,34 +985,20 @@ function saveSettings(){
   err.textContent='';
   api('ajustes',{nequi:nq,wa:wa}).then(function(){settings.nequi=nq;settings.wa=wa;toast('Cambios guardados');},function(e){err.textContent=e.message;});
 }
+function saveGasto(f){
+  var desc=$('#gDesc').value.trim(),v=parseInt($('#gVal').value.replace(/\D/g,''),10)||0,d=$('#gDate').value,err=$('#gErr');
+  if(desc.length<2){err.textContent='Escribe en qué gastaste.';$('#gDesc').focus();return;}
+  if(!(v>0)){err.textContent='Escribe el valor del gasto.';$('#gVal').focus();return;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){err.textContent='Escoge la fecha.';return;}
+  err.textContent='';var b=f.querySelector('button');b.disabled=true;
+  api('gasto',{desc:desc,v:v,d:d}).then(reloadData).then(function(){renderPanelBody();toast('Gasto guardado: '+money(v));},function(e){b.disabled=false;err.textContent=e.message;});
+}
 /* ═══════════ MODO EDICIÓN EN LA PÁGINA ═══════════ */
 function renderEditCtl(){
   var c=$('#editCtl');if(!c)return;
   if(!unlocked()||curView!=='inicio'){c.innerHTML=unlocked()?'<a class="install" href="#inicio" style="text-decoration:none;display:inline-flex;align-items:center">Ver menú</a>':'';return;}
-  c.innerHTML=editing?'<button class="install" type="button" data-act="editcancel">Cancelar</button> <button class="install" type="button" data-act="editsave" style="background:#2F7D2F;border-color:#2F7D2F">Guardar</button>'
-    :'<a class="install" href="#admin" style="text-decoration:none;display:inline-flex;align-items:center">Administración</a>';
+  c.innerHTML='<a class="install" href="#admin" style="text-decoration:none;display:inline-flex;align-items:center">Administración</a>';
 }
-function setEditing(on){
-  editing=!!on&&unlocked();document.body.classList.toggle('editing',editing);
-  if(curView==='inicio')renderInicio();
-  var els=document.querySelectorAll('[data-edit],[data-dish]');
-  for(var i=0;i<els.length;i++){if(editing){els[i].setAttribute('contenteditable','true');els[i].setAttribute('spellcheck','true');}else els[i].removeAttribute('contenteditable');}
-  renderEditCtl();
-}
-function saveEdits(btn){
-  var calls=[],aj={},changed=false;
-  var els=document.querySelectorAll('[data-edit]');
-  for(var i=0;i<els.length;i++){var k=els[i].getAttribute('data-edit'),v=els[i].textContent.replace(/\s+/g,' ').trim();if(v&&v!==settings[k]){aj[k]=v;changed=true;}}
-  if(changed)calls.push(api('ajustes',aj));
-  var ds=document.querySelectorAll('[data-dish]');
-  for(i=0;i<ds.length;i++){var id=ds[i].getAttribute('data-id'),f=ds[i].getAttribute('data-dish'),val=ds[i].textContent.replace(/\s+/g,' ').trim();var d=findDish(id);if(d&&val&&val!==d[f]){pending[id]=pending[id]||{};pending[id][f]=val;}}
-  Object.keys(pending).forEach(function(id){var d=findDish(id);if(!d)return;var p=pending[id];
-    calls.push(api('plato',{id:d.id,name:p.name||d.name,desc:p.desc!=null?p.desc:d.desc,photo:p.photo||d.photo||null,variants:d.variants,active:d.active!==false}));});
-  if(!calls.length){setEditing(false);toast('No había cambios.');return;}
-  btn.disabled=true;toast('Guardando…');
-  Promise.all(calls).then(reloadData).then(function(){pending={};setEditing(false);toast('¡Listo! Los clientes ya ven los cambios.');},function(e){btn.disabled=false;toast('No se guardó: '+e.message);});
-}
-document.addEventListener('paste',function(e){if(editing&&e.target.isContentEditable){e.preventDefault();var t=(e.clipboardData||window.clipboardData).getData('text');document.execCommand('insertText',false,t.replace(/\s+/g,' '));}});
 
 /* ═══════════ 10. INSTALABLE (PWA) ═══════════ */
 var dprompt=null;

@@ -69,7 +69,9 @@ const A = {
         sum((SELECT coalesce(sum((l->>'c')::int * (l->>'q')::int), 0) FROM jsonb_array_elements(lineas) l))::int AS c,
         bool_or(EXISTS (SELECT 1 FROM jsonb_array_elements(lineas) l WHERE l->>'c' IS NULL)) AS miss
       FROM pedidos WHERE creado > now() - interval '366 days' GROUP BY 1 ORDER BY 1 DESC`;
-    return { days, orders: rows.map((o) => ({ num: o.id, ts: +o.ts, name: o.nombre, phone: o.celular, address: o.direccion, barrio: o.barrio, ref: o.referencia || '', pay: o.pago, cash: o.paga_con, notes: o.notas || '', st: o.estado, lines: o.lineas, proof: o.tiene })),
+    const gastos = await sql`SELECT id, to_char(fecha, 'YYYY-MM-DD') AS d, descripcion AS "desc", valor AS v
+      FROM gastos WHERE fecha > (now() AT TIME ZONE 'America/Bogota')::date - 366 ORDER BY fecha DESC, id DESC`;
+    return { days, gastos, orders: rows.map((o) => ({ num: o.id, ts: +o.ts, name: o.nombre, phone: o.celular, address: o.direccion, barrio: o.barrio, ref: o.referencia || '', pay: o.pago, cash: o.paga_con, notes: o.notas || '', st: o.estado, lines: o.lineas, proof: o.tiene })),
       ...(await menu(true)) };
   },
   async estado(req, b) {
@@ -99,6 +101,13 @@ const A = {
       VALUES (${name}, ${desc}, ${photo}, ${JSON.stringify(vs)}, (SELECT coalesce(max(orden),0)+1 FROM platos), ${active}) RETURNING id`;
     return { id: String(r.id) };
   },
+  async gasto(req, b) {
+    const desc = str(b.desc, 120), v = Math.floor(+b.v), d = str(b.d, 10);
+    if (desc.length < 2 || !(v > 0 && v < 100000000) || !/^\d{4}-\d{2}-\d{2}$/.test(d)) throw [400, 'Escribe en qué gastaste, el valor y la fecha'];
+    const [r] = await sql`INSERT INTO gastos (fecha, descripcion, valor) VALUES (${d}, ${desc}, ${v}) RETURNING id`;
+    return { id: r.id };
+  },
+  async borrargasto(req, b) { await sql`DELETE FROM gastos WHERE id = ${+b.id}`; return {}; },
   async borrarpedido(req, b) { await sql`DELETE FROM pedidos WHERE id = ${+b.id}`; return {}; },
   async borrar(req, b) { await sql`DELETE FROM platos WHERE id = ${+b.id}`; return {}; },
   async ajustes(req, b) {
