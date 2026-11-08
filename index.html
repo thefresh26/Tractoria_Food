@@ -685,8 +685,8 @@ function profitHTML(){
       '</tbody></table>':'<p class="muted">No hay gastos anotados en este periodo.</p>')+'</section>';
   var dd=dayRows().slice(0,60);
   var daily='<section class="orders" style="margin-top:16px"><h2 class="h-script sm">Día por día</h2>'+(dd.length?
-    '<div style="max-height:420px;overflow:auto"><table class="ptable"><thead><tr><th>Día</th><th class="n">Pedidos</th><th class="n">Vendido</th><th class="n">Costo comida</th><th class="n">Otros gastos</th><th class="n">Te quedas con</th></tr></thead><tbody>'+
-    dd.map(function(r){var k=r.v-r.c-r.g;return '<tr><td>'+fmtD(r.d)+(r.miss?' <span style="color:#A5161C" title="Tiene pedidos sin costo">*</span>':'')+'</td><td class="n">'+r.n+'</td><td class="n">'+money(r.v)+'</td><td class="n">'+money(r.c)+'</td><td class="n">'+money(r.g)+'</td><td class="n gain" style="'+(k<0?'color:#A5161C':'')+'">'+moneyS(k)+'</td></tr>';}).join('')+
+    '<div style="max-height:420px;overflow:auto"><table class="ptable"><thead><tr><th>Día</th><th class="n">Pedidos</th><th class="n">Vendido</th><th class="n">Costo comida</th><th class="n">Otros gastos</th><th class="n">Te quedas con</th><th></th></tr></thead><tbody>'+
+    dd.map(function(r){var k=r.v-r.c-r.g;return '<tr><td>'+fmtD(r.d)+(r.miss?' <span style="color:#A5161C" title="Tiene pedidos sin costo">*</span>':'')+'</td><td class="n">'+r.n+'</td><td class="n">'+money(r.v)+'</td><td class="n">'+money(r.c)+'</td><td class="n">'+money(r.g)+'</td><td class="n gain" style="'+(k<0?'color:#A5161C':'')+'">'+moneyS(k)+'</td><td class="n"><button type="button" class="linkbtn danger" data-act="delday" data-d="'+r.d+'" aria-label="Borrar el día '+fmtD(r.d)+'">Borrar</button></td></tr>';}).join('')+
     '</tbody></table></div><p class="fine" style="margin-top:8px">Se guarda solo cada día. Muestra los últimos 60 días con ventas o gastos.</p>':'<p class="muted" style="margin-top:8px">Aún no hay días con ventas ni gastos.</p>')+'</section>';
   var tbl=keys.length?'<table class="ptable"><thead><tr><th>Plato</th><th class="n">Cant.</th><th class="n">Vendido</th></tr></thead><tbody>'+
     keys.map(function(k){return '<tr><td>'+esc(k)+'</td><td class="n">'+per[k].q+'</td><td class="n">'+money(per[k].s)+'</td></tr>';}).join('')+
@@ -895,6 +895,13 @@ var H={
   delgasto:function(t){var g=GASTOS.filter(function(x){return String(x.id)===t.getAttribute('data-id');})[0];if(!g)return;
     if(!confirm('¿Borrar el gasto «'+g.desc+'» de '+money(g.v)+'?'))return;
     api('borrargasto',{id:g.id}).then(reloadData).then(function(){renderPanelBody();toast('Gasto borrado');},function(e){toast(e.message);});},
+  delday:function(t){var d=t.getAttribute('data-d'),r=dayRows().filter(function(x){return x.d===d;})[0];if(!r)return;
+    openSheet('<div class="sheet-h"><h2 id="sheetT">¿Borrar todo el día '+fmtD(d).toLowerCase()+'?</h2><button class="x" type="button" data-act="close" aria-label="Cerrar">×</button></div>'+
+      '<div class="kv"><span><b>Pedidos:</b> '+r.n+' ('+money(r.v)+' vendido)</span><span><b>Otros gastos:</b> '+money(r.g)+'</span></div>'+
+      '<p class="editnote">Se borran para siempre todos los pedidos y gastos de ese día, también de la base de datos. Úsalo para quitar pruebas. No se puede deshacer.</p><p class="err" id="delErr" role="alert"></p>'+
+      '<button class="btn btn-red btn-lg" type="button" data-act="deldayyes" data-d="'+d+'">Sí, borrar el día</button><button class="btn btn-ghost btn-lg" type="button" data-act="close">No, cancelar</button>');},
+  deldayyes:function(t){var d=t.getAttribute('data-d');t.disabled=true;
+    api('borrardia',{d:d}).then(reloadData).then(function(){closeSheet();renderPanelBody();toast('Día borrado');},function(e){t.disabled=false;$('#delErr').textContent=e.message;});},
   delorder:function(t){var o=orders.filter(function(x){return x.id===t.getAttribute('data-id');})[0];if(!o)return;
     openSheet('<div class="sheet-h"><h2 id="sheetT">¿Borrar este pedido?</h2><button class="x" type="button" data-act="close" aria-label="Cerrar">×</button></div>'+
       '<div class="kv"><span><b>'+esc(o.id)+'</b> · '+esc(o.name)+' · '+esc(o.phone)+'</span><span>'+o.lines.map(function(l){return l.q+' × '+esc(l.n);}).join(', ')+'</span><span><b>Total:</b> '+money(orderTotal(o))+'</span></div>'+

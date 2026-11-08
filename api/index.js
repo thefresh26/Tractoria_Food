@@ -108,6 +108,13 @@ const A = {
     return { id: r.id };
   },
   async borrargasto(req, b) { await sql`DELETE FROM gastos WHERE id = ${+b.id}`; return {}; },
+  async borrardia(req, b) {
+    const d = str(b.d, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) throw [400, 'Fecha no válida'];
+    await sql`DELETE FROM pedidos WHERE (creado AT TIME ZONE 'America/Bogota')::date = ${d}::date`;
+    await sql`DELETE FROM gastos WHERE fecha = ${d}::date`;
+    return {};
+  },
   async borrarpedido(req, b) { await sql`DELETE FROM pedidos WHERE id = ${+b.id}`; return {}; },
   async borrar(req, b) { await sql`DELETE FROM platos WHERE id = ${+b.id}`; return {}; },
   async ajustes(req, b) {
