@@ -63,7 +63,13 @@ const A = {
   async panel() {
     const rows = await sql`SELECT id, extract(epoch from creado)*1000 AS ts, nombre, celular, direccion, barrio, referencia, pago, paga_con, notas, estado, lineas, comprobante IS NOT NULL AS tiene
       FROM pedidos WHERE creado > now() - interval '32 days' ORDER BY id`;
-    return { orders: rows.map((o) => ({ num: o.id, ts: +o.ts, name: o.nombre, phone: o.celular, address: o.direccion, barrio: o.barrio, ref: o.referencia || '', pay: o.pago, cash: o.paga_con, notes: o.notas || '', st: o.estado, lines: o.lineas, proof: o.tiene })),
+    // Resumen por día (hora de Colombia) del último año: pedidos, vendido y costo guardado en cada línea.
+    const days = await sql`SELECT to_char((creado AT TIME ZONE 'America/Bogota')::date, 'YYYY-MM-DD') AS d, count(*)::int AS n,
+        sum(total)::int AS v,
+        sum((SELECT coalesce(sum((l->>'c')::int * (l->>'q')::int), 0) FROM jsonb_array_elements(lineas) l))::int AS c,
+        bool_or(EXISTS (SELECT 1 FROM jsonb_array_elements(lineas) l WHERE l->>'c' IS NULL)) AS miss
+      FROM pedidos WHERE creado > now() - interval '366 days' GROUP BY 1 ORDER BY 1 DESC`;
+    return { days, orders: rows.map((o) => ({ num: o.id, ts: +o.ts, name: o.nombre, phone: o.celular, address: o.direccion, barrio: o.barrio, ref: o.referencia || '', pay: o.pago, cash: o.paga_con, notes: o.notas || '', st: o.estado, lines: o.lineas, proof: o.tiene })),
       ...(await menu(true)) };
   },
   async estado(req, b) {

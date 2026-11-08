@@ -377,7 +377,7 @@ body.editing .photo-btn{display:inline-flex}
 <a class="skip" href="#main">Saltar al contenido</a>
 <noscript><p style="background:#fff;padding:16px;margin:0;font-weight:700">Para pedir necesitas activar JavaScript en tu navegador.</p></noscript>
 
-<div class="topbar"><div class="topbar-in"><span data-edit="t_top"></span><div class="editbar"><span id="editCtl"></span><button class="install" id="installBtn" type="button" data-act="install" hidden>Instalar app</button></div></div></div>
+<div class="topbar"><div class="topbar-in"><span data-edit="t_top"></span><div class="editbar"><span id="editCtl"></span></div></div></div>
 
 <main id="main" class="wrap">
   <section id="v-inicio" class="view" hidden></section><p class="loading" id="loading">Cargando el menú…</p>
@@ -467,7 +467,8 @@ function setData(j){
   cart=cart.filter(function(c){var d=findDish(c.d);return d&&d.active!==false&&d.variants.some(function(v){return v.id===c.v;});});
   applyTexts();
 }
-function reloadData(){return api(unlocked()?'panel':'menu',unlocked()?{}:null).then(function(j){if(j.orders)orders=j.orders.map(function(o){o.id='DT-'+pad(o.num,4);return o;});setData(j);return j;});}
+var DAYS=[];
+function reloadData(){return api(unlocked()?'panel':'menu',unlocked()?{}:null).then(function(j){if(j.days)DAYS=j.days;if(j.orders)orders=j.orders.map(function(o){o.id='DT-'+pad(o.num,4);return o;});setData(j);return j;});}
 function applyTexts(){
   var els=document.querySelectorAll('[data-edit]');
   for(var i=0;i<els.length;i++){var k=els[i].getAttribute('data-edit');if(!editing||document.activeElement!==els[i])els[i].textContent=settings[k]||'';}
@@ -624,13 +625,6 @@ function sheetHTML(){
    '<button class="btn btn-red btn-lg" type="button" data-act="here">Pedir aquí, te lo llevamos</button>';
 }
 function updateSheetTotal(){var v=findVar(sh.d,sh.vid);$('#stotal').textContent=money(v.price*sh.q);$('#qval').textContent=sh.q;}
-function openInstallHelp(){
-  var ua=navigator.userAgent,ios=/iphone|ipad|ipod/i.test(ua),and=/android/i.test(ua);
-  var steps=ios?'<li>Abre esta página en <b>Safari</b>.</li><li>Toca el botón <b>Compartir</b> (el cuadro con la flecha).</li><li>Elige <b>Añadir a pantalla de inicio</b>.</li>':
-    and?'<li>Abre esta página en <b>Chrome</b>.</li><li>Toca el menú <b>⋮</b> de arriba a la derecha.</li><li>Elige <b>Instalar app</b> o <b>Añadir a pantalla de inicio</b>.</li>':
-    '<li>Usa <b>Chrome</b> o <b>Edge</b>.</li><li>Busca el ícono de instalar en la barra de direcciones, o abre el menú <b>⋮</b>.</li><li>Elige <b>Instalar Desayunos Trattoria</b>.</li>';
-  openSheet('<div class="sheet-h"><h2 id="sheetT">Instalar app</h2><button class="x" type="button" data-act="close" aria-label="Cerrar">×</button></div><p class="desc">Así tendrás el menú a un toque, como cualquier otra app.</p><ol>'+steps+'</ol><p class="fine" style="margin-bottom:14px">Si llegaste desde WhatsApp o Facebook, primero ábrelo en tu navegador (Chrome o Safari).</p><button class="btn btn-red btn-lg" type="button" data-act="close">Entendido</button>');
-}
 
 /* ═══════════ 7. PIN Y PANEL DE VENDEDORAS ═══════════ */
 function renderPin(){
@@ -679,7 +673,12 @@ function profitHTML(){
     keys.map(function(k){var r=per[k];return '<tr><td>'+esc(k)+(r.miss?' <span style="color:#A5161C">*</span>':'')+'</td><td class="n">'+r.q+'</td><td class="n">'+money(r.s)+'</td><td class="n gain">'+money(r.s-r.c)+'</td></tr>';}).join('')+
     '</tbody><tfoot><tr><td>Total</td><td class="n">'+keys.reduce(function(a,k){return a+per[k].q;},0)+'</td><td class="n">'+money(sold)+'</td><td class="n gain">'+money(gain)+'</td></tr></tfoot></table>'
     :'<p class="muted" style="margin-top:8px">Aún no hay ventas en este periodo.</p>';
-  return seg+kp+warn+'<div class="pgrid"><section class="orders"><h2 class="h-script sm">Por plato</h2>'+tbl+'</section><section class="chart"><h2 class="h-script sm">Últimos 7 días</h2>'+profitChartHTML()+'<div class="legend"><span><i style="background:#2F7D2F"></i>Vendido</span><span><i style="background:#D4222A"></i>Ganancia</span></div></section></div>';
+  var dd=DAYS.slice(0,60),fmtD=function(s){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);var t=startOfDay(Date.now());return d.getTime()===t?'Hoy':d.getTime()===t-864e5?'Ayer':WD[d.getDay()]+' '+d.getDate()+' '+MON[d.getMonth()]+(d.getFullYear()!==new Date().getFullYear()?' '+d.getFullYear():'');};
+  var daily='<section class="orders" style="margin-top:16px"><h2 class="h-script sm">Día por día</h2>'+(dd.length?
+    '<div style="max-height:420px;overflow:auto"><table class="ptable"><thead><tr><th>Día</th><th class="n">Pedidos</th><th class="n">Vendido</th><th class="n">Costo</th><th class="n">Ganancia</th></tr></thead><tbody>'+
+    dd.map(function(r){return '<tr><td>'+fmtD(r.d)+(r.miss?' <span style="color:#A5161C" title="Tiene pedidos sin costo registrado">*</span>':'')+'</td><td class="n">'+r.n+'</td><td class="n">'+money(r.v)+'</td><td class="n">'+money(r.c)+'</td><td class="n gain">'+money(r.v-r.c)+'</td></tr>';}).join('')+
+    '</tbody></table></div><p class="fine" style="margin-top:8px">Se guarda solo cada día. Muestra hasta los últimos 60 días con ventas.</p>':'<p class="muted" style="margin-top:8px">Aún no hay días con ventas.</p>')+'</section>';
+  return seg+kp+warn+daily+'<div class="pgrid"><section class="orders"><h2 class="h-script sm">Por plato</h2>'+tbl+'</section><section class="chart"><h2 class="h-script sm">Últimos 7 días</h2>'+profitChartHTML()+'<div class="legend"><span><i style="background:#2F7D2F"></i>Vendido</span><span><i style="background:#D4222A"></i>Ganancia</span></div></section></div>';
 }
 function profitChartHTML(){
   var d=[],i,max=0,now=Date.now();
@@ -689,16 +688,6 @@ function profitChartHTML(){
     svg+='<rect x="'+cx+'" y="'+(base-hv)+'" width="17" height="'+Math.max(hv,x.v?3:0)+'" rx="4" fill="#2F7D2F"/><rect x="'+(cx+19)+'" y="'+(base-hg)+'" width="17" height="'+Math.max(hg,x.g>0?3:0)+'" rx="4" fill="#D4222A"/>';
     if(x.v)svg+='<text x="'+(cx+18)+'" y="'+(base-hv-6)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#1B1B1B">'+Math.round(x.v/1000)+'k</text>';
     svg+='<text x="'+(cx+18)+'" y="'+(base+22)+'" text-anchor="middle" font-size="14" fill="#6B5A3E" font-weight="'+(x.i===0?800:500)+'">'+WD[new Date(x.s).getDay()]+'</text>';});
-  return svg+'</svg>';
-}
-function chartHTML(){
-  var days=[],i,max=0,now=Date.now();
-  for(i=6;i>=0;i--){var s=startOfDay(now,-i),e=startOfDay(now,-i+1);var t=sum(orders.filter(function(o){return o.ts>=s&&o.ts<e;}),orderTotal);days.push({s:s,t:t,i:i});if(t>max)max=t;}
-  var top=Math.max(max,10000),W=370,H=210,base=168,mh=124,bw=36,svg='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Ventas de los últimos 7 días: '+days.map(function(d){return WD[new Date(d.s).getDay()]+' '+money(d.t);}).join(', ')+'"><line x1="6" y1="'+base+'" x2="'+(W-6)+'" y2="'+base+'" stroke="#C9B58F" stroke-width="2"/>';
-  days.forEach(function(d,k){var h=Math.round(d.t/top*mh),x=14+k*51;
-    svg+='<rect x="'+x+'" y="'+(base-h)+'" width="'+bw+'" height="'+Math.max(h,d.t?3:0)+'" rx="6" fill="'+(d.i===0?'#D4222A':'#2F7D2F')+'"/>';
-    if(d.t)svg+='<text x="'+(x+bw/2)+'" y="'+(base-h-6)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#1B1B1B">'+Math.round(d.t/1000)+'k</text>';
-    svg+='<text x="'+(x+bw/2)+'" y="'+(base+22)+'" text-anchor="middle" font-size="14" fill="#6B5A3E" font-weight="'+(d.i===0?800:500)+'">'+WD[new Date(d.s).getDay()]+'</text>';});
   return svg+'</svg>';
 }
 function rowHTML(o){
@@ -715,20 +704,20 @@ function renderPanelBody(){
   if(ptab==='menu'){$('#pbody').innerHTML=menuTabHTML();return;}
   if(ptab==='ajustes'){$('#pbody').innerHTML=settingsHTML();return;}
   if(ptab==='ganancias'){$('#pbody').innerHTML=profitHTML();return;}
-  var from=range==='hoy'?startOfDay(Date.now()):startOfDay(Date.now(),-6);
-  var list=orders.filter(function(o){return o.ts>=from;}).sort(function(a,b){return b.ts-a.ts;});
-  var sold=sum(list,orderTotal),nq=sum(list.filter(function(o){return o.pay==='nequi'&&(o.st||0)>=1;}),orderTotal),cash=sum(list.filter(function(o){return o.pay==='efectivo'&&(o.st||0)<3;}),orderTotal);
-  var kp='<div class="kpis"><div class="kpi"><span class="k">Vendido '+(range==='hoy'?'hoy':'esta semana')+'</span><strong>'+money(sold)+'</strong></div><div class="kpi"><span class="k">Pedidos</span><strong>'+list.length+'</strong></div><div class="kpi"><span class="k">Recibido por Nequi</span><strong>'+money(nq)+'</strong></div><div class="kpi red"><span class="k">Efectivo por cobrar</span><strong>'+money(cash)+'</strong><small>en entregas pendientes</small></div></div>';
-  var body='';
+  var today=startOfDay(Date.now());
+  var hoy=orders.filter(function(o){return o.ts>=today;});
+  var list=orders.filter(function(o){return o.ts>=today||(o.st||0)<3;}).sort(function(a,b){return b.ts-a.ts;});
+  var nq=sum(hoy.filter(function(o){return o.pay==='nequi'&&(o.st||0)>=1;}),orderTotal),cash=sum(list.filter(function(o){return o.pay==='efectivo'&&(o.st||0)<3;}),orderTotal);
+  var kp='<div class="kpis"><div class="kpi"><span class="k">Vendido hoy</span><strong>'+money(sum(hoy,orderTotal))+'</strong></div><div class="kpi"><span class="k">Pedidos hoy</span><strong>'+hoy.length+'</strong></div><div class="kpi"><span class="k">Recibido por Nequi hoy</span><strong>'+money(nq)+'</strong></div><div class="kpi red"><span class="k">Efectivo por cobrar</span><strong>'+money(cash)+'</strong><small>en entregas pendientes</small></div></div>';
+  var body;
   if(!list.length){
-    body='<div class="empty"><h2 class="h-script sm">Aún no hay pedidos '+(range==='hoy'?'hoy':'esta semana')+'</h2><p class="muted" style="margin-top:6px">Cuando un cliente confirme un pedido, aparece aquí.</p>'+'</div>';
+    body='<div class="empty"><h2 class="h-script sm">Aún no hay pedidos hoy</h2><p class="muted" style="margin-top:6px">Cuando un cliente confirme un pedido, aparece aquí. Los de días anteriores quedan guardados en «Ganancias».</p></div>';
   }else{
     var last='',rows='';
-    list.forEach(function(o){var dl=fmtDay(o.ts);if(dl!==last){rows+='<tr class="day"><td colspan="5">'+dl+'</td></tr>';last=dl;}rows+=rowHTML(o);});
+    list.forEach(function(o){var dl=o.ts>=today?'Hoy':fmtDay(o.ts)+' · sin entregar';if(dl!==last){rows+='<tr class="day"><td colspan="5">'+dl+'</td></tr>';last=dl;}rows+=rowHTML(o);});
     body='<table class="otable"><thead><tr><th>Hora y cliente</th><th>Pedido</th><th>Dirección</th><th>Total y pago</th><th>Estado</th></tr></thead><tbody>'+rows+'</tbody></table>';
   }
-  var seg='<div class="seg" role="group" aria-label="Periodo" style="margin-top:16px"><button type="button" data-act="range" data-r="hoy" aria-pressed="'+(range==='hoy')+'">Hoy</button><button type="button" data-act="range" data-r="semana" aria-pressed="'+(range==='semana')+'">Últimos 7 días</button></div>';
-  $('#pbody').innerHTML=seg+kp+'<div class="pgrid"><section class="chart" aria-labelledby="chT"><h2 class="h-script sm" id="chT">Ventas por día</h2>'+chartHTML()+'</section><section class="orders" aria-labelledby="orT"><h2 class="h-script sm" id="orT">Pedidos</h2>'+body+'</section></div>';
+  $('#pbody').innerHTML='<p class="muted" style="margin-top:16px">Aquí ves los pedidos de hoy. Al pasar el día, se guardan solos en «Ganancias» (los que no se alcanzaron a entregar siguen aquí hasta que los marques).</p>'+kp+'<section class="orders" style="margin-top:16px" aria-labelledby="orT"><h2 class="h-script sm" id="orT">Pedidos de hoy</h2>'+body+'</section>';
 }
 /* Aviso al cliente cuando el pedido sale: abre WhatsApp con el mensaje listo para enviar. */
 function waChat(p){return 'https://wa.me/57'+String(p).replace(/\D/g,'').replace(/^57(?=3\d{9}$)/,'');}
@@ -880,7 +869,6 @@ var H={
   ldel:function(t){cart.splice(+t.getAttribute('data-i'),1);refreshCart();},
   copy:function(){copyText(settings.nequi.replace(/\s/g,''),'Número de Nequi copiado');},
   lock:function(){setUnlocked(false);location.hash='#inicio';},
-  range:function(t){range=t.getAttribute('data-r');var b=document.querySelectorAll('[data-act="range"]');for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed',String(b[i]===t));renderPanelBody();},
   next:function(t){changeStatus(t.getAttribute('data-id'),1);},
   prev:function(t){changeStatus(t.getAttribute('data-id'),-1);},
   lb:function(t){var o=orders.filter(function(x){return x.id===t.getAttribute('data-id');})[0];if(!o)return;toast('Cargando comprobante…');api('comprobante',{id:o.num}).then(function(j){if(j.proof){$('#lbImg').src=j.proof;$('#lb').hidden=false;$('#lb .x').focus();}},function(e){toast(e.message);});},
@@ -908,8 +896,7 @@ var H={
   editsave:function(t){saveEdits(t);},
   vadd:function(){syncVariants();ed.variants.push({id:'v'+Date.now(),label:'',price:''});$('#vrows').innerHTML=vrowsHTML();var i=document.querySelectorAll('#vrows .vl');if(i.length)i[i.length-1].focus();},
   vdel:function(t){syncVariants();if(ed.variants.length<2){toast('El plato necesita al menos una opción con precio.');return;}ed.variants.splice(+t.getAttribute('data-i'),1);$('#vrows').innerHTML=vrowsHTML();},
-  photodel:function(t){ed.photo=null;dishPreview();t.hidden=true;},
-  install:function(){if(dprompt){dprompt.prompt();dprompt.userChoice.then(function(){dprompt=null;},function(){});}else openInstallHelp();}
+  photodel:function(t){ed.photo=null;dishPreview();t.hidden=true;}
 };
 document.addEventListener('click',function(e){
   var t=e.target.closest?e.target.closest('[data-act]'):null;
@@ -1023,7 +1010,6 @@ document.addEventListener('paste',function(e){if(editing&&e.target.isContentEdit
 /* ═══════════ 10. INSTALABLE (PWA) ═══════════ */
 var dprompt=null;
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dprompt=e;});
-window.addEventListener('appinstalled',function(){$('#installBtn').hidden=true;});
 function makeIcon(sz){
   try{
     var c=document.createElement('canvas');c.width=c.height=sz;var x=c.getContext('2d');if(!x)return null;var s=sz/512;
@@ -1044,8 +1030,6 @@ function setupPWA(){
       var m=document.createElement('link');m.rel='manifest';m.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/manifest+json'}));document.head.appendChild(m);
     }
   }catch(e){}
-  var standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
-  $('#installBtn').hidden=standalone;
 }
 
 /* ═══════════ 11. ARRANQUE ═══════════ */
