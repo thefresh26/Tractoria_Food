@@ -31,12 +31,13 @@
   :root:not([data-theme="light"]){--page-a:#6E4824;--page-b:#4B2F14;--grain:rgba(0,0,0,.28)}
 }
 :root[data-theme="dark"]{--page-a:#6E4824;--page-b:#4B2F14;--grain:rgba(0,0,0,.28)}
-html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--page-b)}
+html{scroll-padding-top:calc(60px + env(safe-area-inset-top,0px));background:var(--page-b)}
 html.lock{overflow:hidden}
 *,*::before,*::after{box-sizing:inherit}
 [hidden]{display:none!important}
 body{
-  margin:0;min-height:100vh;font-family:var(--f-sans);font-size:17px;line-height:1.5;color:var(--ink);
+  --mantel:36px;
+  margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-bottom:calc(var(--mantel) + env(safe-area-inset-bottom,0px));font-family:var(--f-sans);font-size:17px;line-height:1.5;color:var(--ink);
   background-color:var(--page-b);
   background-image:
     repeating-linear-gradient(90deg,transparent 0 118px,var(--grain) 118px 120px),
@@ -44,7 +45,8 @@ body{
     linear-gradient(180deg,var(--page-a),var(--page-b));
   -webkit-text-size-adjust:100%;
 }
-body.has-bar{padding-bottom:96px}
+body.has-bar{padding-bottom:calc(96px + var(--mantel) + env(safe-area-inset-bottom,0px))}
+body>main{flex:1 0 auto;width:100%}
 img,svg{max-width:100%}
 a{color:var(--red-d)}
 h1,h2,h3,p{margin:0}
@@ -53,7 +55,7 @@ h1,h2,h3,p{margin:0}
 .skip:focus{top:8px}
 
 /* barra superior */
-.topbar{background:var(--red-d);color:var(--cream)}
+.topbar{background:var(--red-d);color:var(--cream);position:sticky;top:0;z-index:45;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .topbar-in{max-width:1120px;margin:0 auto;padding:0 16px;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px}
 .install{background:transparent;color:var(--cream);border:1.5px solid rgba(251,243,228,.7);border-radius:999px;min-height:40px;padding:6px 16px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .install:hover{background:rgba(251,243,228,.14)}
@@ -124,7 +126,7 @@ h1,h2,h3,p{margin:0}
 .btn[disabled]{opacity:.6;cursor:default}
 
 /* barra fija inferior (celular y tablet) */
-.bar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--cream);border-top:3px solid var(--green);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+.bar{display:none;position:fixed;left:0;right:0;bottom:calc(var(--mantel) + env(safe-area-inset-bottom,0px));z-index:40;background:var(--cream);border-top:3px solid var(--green);padding:10px 16px}
 .bar.show{display:block}
 .bar-in{max-width:620px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:14px}
 .bar-in span{display:block;font-size:22px;font-weight:800;line-height:1.1}
@@ -282,19 +284,19 @@ details.settings form{display:grid;gap:14px;padding:6px 0 16px}
 .x.sm{width:48px;height:48px;font-size:22px}
 
 /* pie con mantel */
-.foot{margin-top:34px}
+.foot{margin-top:34px;padding-bottom:12px}
 .foot-in{max-width:620px;margin:0 auto 14px;background:var(--cream);border:3px solid var(--green);border-radius:16px;padding:12px 16px;text-align:center}
 .foot-in p+p{margin-top:2px}
-.mantel{height:86px;background-color:#fff;background-image:linear-gradient(90deg,rgba(212,34,42,.62) 50%,transparent 50%),linear-gradient(0deg,rgba(212,34,42,.62) 50%,transparent 50%);background-size:40px 40px;border-top:4px solid var(--red-d)}
+.mantel{background-color:#fff;background-image:linear-gradient(90deg,rgba(212,34,42,.62) 50%,transparent 50%),linear-gradient(0deg,rgba(212,34,42,.62) 50%,transparent 50%);background-size:18px 18px;border-top:4px solid var(--red-d);position:fixed;left:0;right:0;bottom:0;z-index:39;height:calc(var(--mantel) + env(safe-area-inset-bottom,0px))}
 #secret{cursor:default;padding:10px 4px}
 
 /* visor de comprobante y aviso */
 .lb{position:fixed;left:0;right:0;top:0;bottom:0;z-index:70;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:20px}
 .lb img{max-width:100%;max-height:100%;border-radius:12px;background:#fff}
 .lb .x{position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top,0px))}
-.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:80;background:var(--ink);color:#fff;font-weight:700;padding:12px 20px;border-radius:12px;max-width:90vw;text-align:center;opacity:0;visibility:hidden}
+.toast{position:fixed;left:50%;bottom:calc(24px + var(--mantel) + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:80;background:var(--ink);color:#fff;font-weight:700;padding:12px 20px;border-radius:12px;max-width:90vw;text-align:center;opacity:0;visibility:hidden}
 .toast.show{opacity:1;visibility:visible}
-body.has-bar .toast{bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+body.has-bar .toast{bottom:calc(110px + var(--mantel) + env(safe-area-inset-bottom,0px))}
 
 /* pasos del pedido y administración */
 button.back{font-family:inherit;font-size:inherit;cursor:pointer}
@@ -338,12 +340,12 @@ button.back{font-family:inherit;font-size:inherit;cursor:pointer}
 /* computador */
 @media (min-width:1024px){
   .inicio-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:26px;align-items:start}
-  .summary{display:block;position:sticky;top:16px}
+  .summary{display:block;position:sticky;top:72px}
   .pay-grid{grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:start}
   .pay-grid.nopay{grid-template-columns:minmax(0,1fr);max-width:640px;margin-left:auto;margin-right:auto}
   .btn-form-submit{display:inline-flex}
   .bar,.bar.show{display:none}
-  body.has-bar{padding-bottom:0}
+  body.has-bar{padding-bottom:calc(var(--mantel) + env(safe-area-inset-bottom,0px))}
   .scrim{align-items:center}
   .sheet{border-radius:26px;border-bottom:3px solid var(--green);transform:translateY(14px) scale(.98)}
   .sheet::before{display:none}
@@ -352,7 +354,7 @@ button.back{font-family:inherit;font-size:inherit;cursor:pointer}
 }
 @media (min-width:1100px){
   .pgrid{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);align-items:start}
-  .pgrid .chart{order:2;position:sticky;top:16px}
+  .pgrid .chart{order:2;position:sticky;top:72px}
   .pgrid .orders{order:1}
 }
 
