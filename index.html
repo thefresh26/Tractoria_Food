@@ -367,8 +367,33 @@ button.back{font-family:inherit;font-size:inherit;cursor:pointer}
   .card:nth-child(2) .sticker:nth-child(2){animation-delay:.3s}
   .scrim{transition:opacity .2s ease,visibility .2s}
   .sheet{transition:transform .26s ease}
-  .toast{transition:opacity .2s,visibility .2s}
-  .btn{transition:transform .08s}
+  .toast{transition:opacity .2s,visibility .2s,transform .25s ease}
+  .toast:not(.show){transform:translate(-50%,12px)}
+  .btn{transition:transform .12s ease,box-shadow .12s ease,background-color .15s ease,color .15s ease}
+  /* entrada suave: solo opacidad y desplazamiento corto (barato en celulares de gama baja) */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .view:not([hidden]){animation:fadeUp .3s ease backwards}
+  #pbody>*{animation:fadeUp .28s ease backwards}
+  #pbody>*:nth-child(2){animation-delay:.04s}
+  #pbody>*:nth-child(3){animation-delay:.08s}
+  #pbody>*:nth-child(4){animation-delay:.12s}
+  .card{animation:fadeUp .35s ease backwards}
+  .card:nth-child(2){animation-delay:.07s}
+  .card:nth-child(3){animation-delay:.14s}
+  .card:nth-child(n+4){animation-delay:.2s}
+  .plaque{animation:fadeUp .35s ease backwards}
+  .seg button,.chip,.tile span,.prev,.x,.wa-btn{transition:background-color .2s ease,color .2s ease,border-color .2s ease,transform .12s ease}
+  .chip:active,.prev:active,.x:active,.seg button:active{transform:scale(.96)}
+  .bar.show{animation:fadeUp .25s ease backwards}
+  input,textarea,select{transition:border-color .15s ease,box-shadow .15s ease}
+  input:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(47,125,47,.18)}
+  @media (hover:hover){
+    .card{transition:transform .2s ease,box-shadow .2s ease}
+    .card:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(60,30,5,.22)}
+    .btn-red:hover{background:#c01d24;transform:translateY(-1px);box-shadow:0 4px 0 var(--red-d)}
+    .btn-ghost:hover{background:#FFF5F4}
+    .install:hover{transform:translateY(-1px)}
+  }
 }
 @media (prefers-reduced-motion: reduce){
   *{animation:none!important;transition:none!important}
@@ -655,27 +680,33 @@ function sum(a,f){return a.reduce(function(s,o){return s+f(o);},0);}
 var prange='hoy',GASTOS=[];
 function ymd(t){var d=new Date(t);return d.getFullYear()+'-'+pad(d.getMonth()+1,2)+'-'+pad(d.getDate(),2);}
 function fmtD(s){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]),t=startOfDay(Date.now());return d.getTime()===t?'Hoy':d.getTime()===t-864e5?'Ayer':WD[d.getDay()]+' '+d.getDate()+' '+MON[d.getMonth()]+(d.getFullYear()!==new Date().getFullYear()?' '+d.getFullYear():'');}
+function lineCost(l){return l.c==null?0:l.c*l.q;}
+function orderCost(o){return o.lines.reduce(function(a,l){return a+lineCost(l);},0);}
 function moneyS(n){return (n<0?'-':'')+money(Math.abs(n));}
 /* Por día: ventas (del servidor) + gastos anotados */
 function dayRows(){
   var m={};
-  DAYS.forEach(function(r){m[r.d]={d:r.d,n:r.n,v:r.v,g:0};});
-  GASTOS.forEach(function(g){var r=m[g.d]=m[g.d]||{d:g.d,n:0,v:0,g:0};r.g+=g.v;});
+  DAYS.forEach(function(r){m[r.d]={d:r.d,n:r.n,v:r.v,c:r.c||0,miss:r.miss,g:0};});
+  GASTOS.forEach(function(g){var r=m[g.d]=m[g.d]||{d:g.d,n:0,v:0,c:0,g:0};r.g+=g.v;});
   return Object.keys(m).sort().reverse().map(function(k){return m[k];});
 }
 function profitHTML(){
   var nd={hoy:1,semana:7,mes:30}[prange],from=startOfDay(Date.now(),-(nd-1)),fromS=ymd(from);
   var list=orders.filter(function(o){return o.ts>=from;});
   var gs=GASTOS.filter(function(g){return g.d>=fromS;});
-  var sold=sum(list,orderTotal),spent=sum(gs,function(g){return g.v;}),keep=sold-spent;
+  var sold=sum(list,orderTotal),cost=sum(list,orderCost),gain=sold-cost,spent=sum(gs,function(g){return g.v;}),keep=gain-spent;
+  var missing=list.some(function(o){return o.lines.some(function(l){return l.c==null;});});
   var per={};
   list.forEach(function(o){o.lines.forEach(function(l){var k=l.n+(l.l?' ('+l.l.toLowerCase()+')':'');var r=per[k]=per[k]||{q:0,s:0};r.q+=l.q;r.s+=l.p*l.q;});});
   var keys=Object.keys(per).sort(function(a,b){return per[b].s-per[a].s;});
   var seg='<div class="seg" role="group" aria-label="Periodo" style="margin-top:16px">'+[['hoy','Hoy'],['semana','7 días'],['mes','30 días']].map(function(r){return '<button type="button" data-act="prange" data-r="'+r[0]+'" aria-pressed="'+(prange===r[0])+'">'+r[1]+'</button>';}).join('')+'</div>';
   var kp='<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))"><div class="kpi"><span class="k">Vendido</span><strong>'+money(sold)+'</strong><small>'+list.length+(list.length===1?' pedido':' pedidos')+'</small></div>'+
-    '<div class="kpi red"><span class="k">Gastos</span><strong>'+money(spent)+'</strong><small>'+gs.length+(gs.length===1?' gasto anotado':' gastos anotados')+'</small></div>'+
-    '<div class="kpi green"><span class="k">Te quedas con</span><strong style="'+(keep<0?'color:#A5161C':'')+'">'+moneyS(keep)+'</strong><small>vendido menos gastos</small></div></div>';
-  var form='<section class="card-s" style="margin-top:16px"><h2 class="h-script sm">Anotar un gasto</h2><p class="muted" style="margin:4px 0 12px">Lo que compraste o pagaste para el negocio: ingredientes, gas, empaques, domicilios…</p>'+
+    '<div class="kpi"><span class="k">Costo de la comida</span><strong>'+money(cost)+'</strong><small>según «Lo que cuesta la comida»</small></div>'+
+    '<div class="kpi"><span class="k">Ganancia de los platos</span><strong>'+money(gain)+'</strong><small>'+(sold?Math.round(gain/sold*100):0)+'% de lo vendido</small></div>'+
+    '<div class="kpi red"><span class="k">Otros gastos</span><strong>'+money(spent)+'</strong><small>'+gs.length+(gs.length===1?' gasto anotado':' gastos anotados')+'</small></div>'+
+    '<div class="kpi green"><span class="k">Te quedas con</span><strong style="'+(keep<0?'color:#A5161C':'')+'">'+moneyS(keep)+'</strong><small>ganancia menos otros gastos</small></div></div>'+
+    (missing?'<p class="editnote" style="margin-top:14px">Hay pedidos de platos que no tenían costo cuando se vendieron: se cuentan como si todo fuera ganancia. Ponle «Lo que cuesta la comida» a cada plato en «Menú y precios»; los pedidos nuevos ya saldrán bien.</p>':'');
+  var form='<section class="card-s" style="margin-top:16px"><h2 class="h-script sm">Anotar otros gastos</h2><p class="muted" style="margin:4px 0 12px">Lo que pagaste y <b>no</b> está en «Lo que cuesta la comida» de los platos: gas, transporte, bolsas, arreglos… Así no se cobra dos veces.</p>'+
     '<form id="gastoForm" class="gform" novalidate><label class="f" for="gDesc">¿En qué?<input type="text" id="gDesc" maxlength="120" placeholder="Ej. Plátanos y carne" autocomplete="off"></label>'+
     '<label class="f" for="gVal">Valor<input type="text" id="gVal" inputmode="numeric" placeholder="30000" autocomplete="off"></label>'+
     '<label class="f" for="gDate">Fecha<input type="date" id="gDate" value="'+ymd(Date.now())+'" max="'+ymd(Date.now())+'"></label>'+
@@ -685,8 +716,8 @@ function profitHTML(){
       '</tbody></table>':'<p class="muted">No hay gastos anotados en este periodo.</p>')+'</section>';
   var dd=dayRows().slice(0,60);
   var daily='<section class="orders" style="margin-top:16px"><h2 class="h-script sm">Día por día</h2>'+(dd.length?
-    '<div style="max-height:420px;overflow:auto"><table class="ptable"><thead><tr><th>Día</th><th class="n">Pedidos</th><th class="n">Vendido</th><th class="n">Gastos</th><th class="n">Te quedas con</th></tr></thead><tbody>'+
-    dd.map(function(r){var k=r.v-r.g;return '<tr><td>'+fmtD(r.d)+'</td><td class="n">'+r.n+'</td><td class="n">'+money(r.v)+'</td><td class="n">'+money(r.g)+'</td><td class="n gain" style="'+(k<0?'color:#A5161C':'')+'">'+moneyS(k)+'</td></tr>';}).join('')+
+    '<div style="max-height:420px;overflow:auto"><table class="ptable"><thead><tr><th>Día</th><th class="n">Pedidos</th><th class="n">Vendido</th><th class="n">Costo comida</th><th class="n">Otros gastos</th><th class="n">Te quedas con</th></tr></thead><tbody>'+
+    dd.map(function(r){var k=r.v-r.c-r.g;return '<tr><td>'+fmtD(r.d)+(r.miss?' <span style="color:#A5161C" title="Tiene pedidos sin costo">*</span>':'')+'</td><td class="n">'+r.n+'</td><td class="n">'+money(r.v)+'</td><td class="n">'+money(r.c)+'</td><td class="n">'+money(r.g)+'</td><td class="n gain" style="'+(k<0?'color:#A5161C':'')+'">'+moneyS(k)+'</td></tr>';}).join('')+
     '</tbody></table></div><p class="fine" style="margin-top:8px">Se guarda solo cada día. Muestra los últimos 60 días con ventas o gastos.</p>':'<p class="muted" style="margin-top:8px">Aún no hay días con ventas ni gastos.</p>')+'</section>';
   var tbl=keys.length?'<table class="ptable"><thead><tr><th>Plato</th><th class="n">Cant.</th><th class="n">Vendido</th></tr></thead><tbody>'+
     keys.map(function(k){return '<tr><td>'+esc(k)+'</td><td class="n">'+per[k].q+'</td><td class="n">'+money(per[k].s)+'</td></tr>';}).join('')+
@@ -697,7 +728,7 @@ function profitHTML(){
 function profitChartHTML(){
   var m={};dayRows().forEach(function(r){m[r.d]=r;});
   var d=[],i,max=0,now=Date.now();
-  for(i=6;i>=0;i--){var s=startOfDay(now,-i),r=m[ymd(s)]||{v:0,g:0};d.push({s:s,v:r.v,g:r.v-r.g,i:i});if(r.v>max)max=r.v;}
+  for(i=6;i>=0;i--){var s=startOfDay(now,-i),r=m[ymd(s)]||{v:0,c:0,g:0};d.push({s:s,v:r.v,g:r.v-r.c-r.g,i:i});if(r.v>max)max=r.v;}
   var top=Math.max(max,10000),base=168,mh=124,svg='<svg viewBox="0 0 370 210" role="img" aria-label="Vendido y lo que te quedas de los últimos 7 días: '+d.map(function(x){return WD[new Date(x.s).getDay()]+' vendido '+money(x.v)+', te quedas con '+moneyS(x.g);}).join('; ')+'"><line x1="6" y1="'+base+'" x2="364" y2="'+base+'" stroke="#C9B58F" stroke-width="2"/>';
   d.forEach(function(x,k){var cx=14+k*51,hv=Math.round(x.v/top*mh),hg=Math.round(Math.max(x.g,0)/top*mh);
     svg+='<rect x="'+cx+'" y="'+(base-hv)+'" width="17" height="'+Math.max(hv,x.v?3:0)+'" rx="4" fill="#2F7D2F"/><rect x="'+(cx+19)+'" y="'+(base-hg)+'" width="17" height="'+Math.max(hg,x.g>0?3:0)+'" rx="4" fill="#D4222A"/>';
