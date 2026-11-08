@@ -64,7 +64,8 @@ h1,h2,h3,p{margin:0}
 .view{animation:none}
 
 /* placa del logo */
-.plaque{position:relative;background:var(--cream);border:4px solid var(--green);border-radius:26px;padding:18px 16px 40px;text-align:center;overflow:hidden}
+.plaque{position:relative;background:var(--cream);border:4px solid var(--green);border-radius:26px;padding:16px 16px 36px;text-align:center;overflow:hidden}
+.logo{display:block;width:100%;max-width:440px;height:auto;margin:0 auto}
 .roof{display:block;margin:0 auto -6px;width:150px;height:auto}
 .wm{display:block;margin:0;font-weight:400}
 .wm-d{display:block;font-family:var(--f-script);color:var(--green);font-size:clamp(50px,13vw,92px);line-height:1;text-shadow:0 2px 0 rgba(0,0,0,.08)}
@@ -511,9 +512,6 @@ function cartTotal(){return cart.reduce(function(a,c){var l=lineInfo(c);return a
 function orderTotal(o){return o.lines.reduce(function(a,l){return a+l.p*l.q;},0);}
 
 /* ═══════════ 4. ILUSTRACIONES (SVG en línea, sin imágenes pesadas) ═══════════ */
-var ROOF='<svg class="roof" viewBox="0 0 240 92" aria-hidden="true"><rect x="168" y="10" width="28" height="40" fill="#A5161C"/><rect x="163" y="5" width="38" height="10" rx="3" fill="#D4222A"/><path d="M8 84 L120 10 L232 84Z" fill="#D4222A" stroke="#A5161C" stroke-width="7" stroke-linejoin="round"/><path d="M44 72 L120 22 M72 78 L134 36 M100 82 L150 50" stroke="#A5161C" stroke-width="3" opacity=".5" fill="none"/></svg>';
-var HAT='<svg viewBox="0 0 64 64" aria-hidden="true"><g fill="#fff" stroke="#1B1B1B" stroke-width="3" stroke-linejoin="round"><circle cx="19" cy="26" r="12"/><circle cx="32" cy="19" r="14"/><circle cx="45" cy="26" r="12"/><path d="M17 34h30v19a3 3 0 0 1-3 3H20a3 3 0 0 1-3-3z"/></g><path d="M17 45h30" stroke="#1B1B1B" stroke-width="3"/></svg>';
-var LEAF='<svg viewBox="0 0 60 40" aria-hidden="true"><path d="M4 36C10 8 38 2 56 6 52 28 28 40 4 36Z" fill="#5AA83A" stroke="#2F7D2F" stroke-width="3" stroke-linejoin="round"/><path d="M6 34C22 24 36 16 52 8" stroke="#2F7D2F" fill="none" stroke-width="2.5"/></svg>';
 var ART={
   generic:function(){return '<svg viewBox="0 0 400 250" role="img" aria-label="Plato"><ellipse cx="200" cy="224" rx="150" ry="13" fill="rgba(70,35,10,.22)"/><ellipse cx="200" cy="140" rx="160" ry="92" fill="#fff" stroke="#E4D7BC" stroke-width="6"/><ellipse cx="200" cy="140" rx="126" ry="68" fill="#F8F0DE"/><g stroke-width="3"><circle cx="170" cy="130" r="26" fill="#E6B93D" stroke="#C48F1C"/><circle cx="226" cy="146" r="30" fill="#D8442A" stroke="#A5161C"/><circle cx="206" cy="112" r="20" fill="#5AA83A" stroke="#2F7D2F"/></g></svg>';},
   bofe:function(){return '<svg viewBox="0 0 400 250" role="img" aria-label="Plato de bofe frito con yuca y patacones"><ellipse cx="200" cy="224" rx="150" ry="13" fill="rgba(70,35,10,.22)"/><ellipse cx="200" cy="140" rx="160" ry="92" fill="#fff" stroke="#E4D7BC" stroke-width="6"/><ellipse cx="200" cy="140" rx="126" ry="68" fill="#F8F0DE"/><ellipse cx="302" cy="100" rx="30" ry="14" fill="#fff" stroke="#E4D7BC" stroke-width="4"/><ellipse cx="302" cy="98" rx="22" ry="9" fill="#D8442A"/><circle cx="296" cy="96" r="3" fill="#F4A23B"/><g fill="#F2DDA0" stroke="#D9BE72" stroke-width="2.5"><rect x="238" y="128" width="74" height="17" rx="6" transform="rotate(-18 275 136)"/><rect x="244" y="146" width="74" height="17" rx="6" transform="rotate(-6 281 154)"/><rect x="236" y="162" width="70" height="17" rx="6" transform="rotate(10 271 170)"/><rect x="224" y="118" width="66" height="16" rx="6" transform="rotate(-30 257 126)"/></g><g fill="#E6B93D" stroke="#C48F1C" stroke-width="3"><ellipse cx="108" cy="170" rx="24" ry="15"/><ellipse cx="142" cy="188" rx="22" ry="14"/><ellipse cx="94" cy="140" rx="20" ry="13"/></g><path d="M94 170h28M130 188h24M82 140h24" stroke="#C48F1C" stroke-width="2" opacity=".7"/><g stroke="#6E3512" stroke-width="3"><rect x="130" y="92" width="96" height="30" rx="15" fill="#9A5524" transform="rotate(-10 178 107)"/><rect x="146" y="120" width="104" height="32" rx="16" fill="#8A4A1E" transform="rotate(6 198 136)"/><rect x="140" y="148" width="88" height="28" rx="14" fill="#A35C28" transform="rotate(-4 184 162)"/></g><g stroke="#D69A5C" stroke-width="3" stroke-linecap="round" opacity=".75"><path d="M150 100l60-10M168 130l62 8M160 158l54-3"/></g></svg>';},
@@ -537,9 +535,7 @@ function fakeQR(){
 
 /* ═══════════ 5. VISTAS PÚBLICAS ═══════════ */
 function plaque(){
-  return '<div class="plaque"><span class="hat l">'+HAT+'</span><span class="hat r">'+HAT+'</span>'+ROOF+
-    '<h1 class="wm" aria-label="'+esc(settings.t_nombre1+' '+settings.t_nombre2)+'"><span class="wm-d" data-edit="t_nombre1">'+esc(settings.t_nombre1)+'</span><span class="wm-t" data-edit="t_nombre2">'+esc(settings.t_nombre2)+'</span></h1>'+
-    '<span class="leaf l">'+LEAF+'</span><span class="leaf r">'+LEAF+'</span></div>'+
+  return '<div class="plaque"><h1 class="wm"><img class="logo" src="logo.webp" alt="'+esc(settings.t_nombre1+' '+settings.t_nombre2)+'" width="640" height="424" decoding="async" fetchpriority="high"></h1></div>'+
     '<div class="ribbon" data-edit="t_lema">'+esc(settings.t_lema)+'</div>';
 }
 function noticesHTML(){return '<div class="notices"><p data-edit="t_aviso1">'+esc(settings.t_aviso1)+'</p><p data-edit="t_aviso2">'+esc(settings.t_aviso2)+'</p></div>';}

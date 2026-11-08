@@ -28,6 +28,11 @@ http.createServer((req, res) => {
     return;
   }
   if (url.pathname === '/healthz') return res.end('ok');
+  if (url.pathname === '/logo.webp') {
+    res.setHeader('Content-Type', 'image/webp');
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+    return fs.createReadStream(path.join(__dirname, 'logo.webp')).pipe(res);
+  }
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
   fs.createReadStream(PAGE).pipe(res);
