@@ -61,7 +61,6 @@ h1,h2,h3,p{margin:0}
 .install:hover{background:rgba(251,243,228,.14)}
 
 .wrap{max-width:1120px;margin:0 auto;padding:20px 16px 8px}
-.view{animation:none}
 
 /* placa del logo */
 .plaque{position:relative;background:var(--cream);border:4px solid var(--green);border-radius:26px;padding:16px 16px 36px;text-align:center;overflow:hidden}
@@ -362,28 +361,6 @@ button.back{font-family:inherit;font-size:inherit;cursor:pointer}
   .pgrid .orders{order:1}
 }
 
-/* movimiento: solo CSS, corto, y apagado si la persona lo pide */
-@media (prefers-reduced-motion: no-preference){
-  .scrim{transition:opacity .2s ease,visibility .2s}
-  .sheet{transition:transform .26s ease}
-  .toast{transition:opacity .2s,visibility .2s,transform .25s ease}
-  .toast:not(.show){transform:translate(-50%,12px)}
-  .btn{transition:transform .12s ease,box-shadow .12s ease,background-color .15s ease,color .15s ease}
-  .seg button,.chip,.tile span,.prev,.x,.wa-btn{transition:background-color .2s ease,color .2s ease,border-color .2s ease,transform .12s ease}
-  .chip:active,.prev:active,.x:active,.seg button:active{transform:scale(.96)}
-  input,textarea,select{transition:border-color .15s ease,box-shadow .15s ease}
-  input:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(47,125,47,.18)}
-  @media (hover:hover){
-    .card{transition:transform .2s ease,box-shadow .2s ease}
-    .card:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(60,30,5,.22)}
-    .btn-red:hover{background:#c01d24;transform:translateY(-1px);box-shadow:0 4px 0 var(--red-d)}
-    .btn-ghost:hover{background:#FFF5F4}
-    .install:hover{transform:translateY(-1px)}
-  }
-}
-@media (prefers-reduced-motion: reduce){
-  *{animation:none!important;transition:none!important}
-}
 </style>
 </head>
 <body>
@@ -665,7 +642,7 @@ function refreshPanel(){
 function renderPanel(){  var tabs=[['pedidos','Pedidos'],['ganancias','Ganancias'],['menu','Menú y precios'],['ajustes','Ajustes']];
   $('#v-panel').innerHTML='<div class="ptop"><h1 class="h-script sm">Administración</h1><div class="seg" role="group" aria-label="Secciones">'+tabs.map(function(t){return '<button type="button" data-act="ptab" data-t="'+t[0]+'" aria-pressed="'+(ptab===t[0])+'">'+t[1]+'</button>';}).join('')+'</div><button class="btn btn-ghost" type="button" data-act="lock">Salir</button></div><div id="pbody"></div>';
   renderPanelBody(true);
-  if(Date.now()-loadedAt>1500)refreshPanel();
+  if(Date.now()-loadedAt>300)refreshPanel();
 }
 function sum(a,f){return a.reduce(function(s,o){return s+f(o);},0);}
 /* ═══ GANANCIAS: vendido − costo ═══ */
